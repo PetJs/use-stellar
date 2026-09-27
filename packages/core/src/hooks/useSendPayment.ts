@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react"
-import { TransactionBuilder, Operation, Asset as StellarAsset, Memo } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer, isNativeAsset, isIssuedAsset, isBrowser } from "../utils"
+import { getHorizonServer, isNativeAsset, isIssuedAsset, canSignTransactions } from "../utils"
 import { asFeeSource, resolveFee } from "../utils/fees"
 import { getWalletAdapter } from "../wallets"
 import {
@@ -36,6 +35,11 @@ export interface UseSendPaymentReturn {
  * congestion. A fee is a maximum bid, not a charge: the network takes only
  * what it needs, so a generous bid costs nothing on a quiet ledger.
  *
+ * This hook is a thin React adapter over the framework-neutral
+ * {@link sendPayment} action: it owns only `loading`/`error`/`result`/`reset`
+ * state, while the action owns validation, transaction construction, signing,
+ * submission, and cache invalidation.
+ *
  * @returns `{ send, loading, error, result, reset }`
  *
  * @example
@@ -66,10 +70,10 @@ export function useSendPayment(): UseSendPaymentReturn {
         throw new Error("No wallet adapter selected. Call connect() first.")
       }
 
-      if (!isBrowser()) {
+      if (!canSignTransactions()) {
         throw createStellarError(
           "VALIDATION_ERROR",
-          "Transaction signing is only available in the browser. " +
+          "Transaction signing is only available in the browser or React Native. " +
             'Move your component to a "use client" boundary in Next.js / Remix.'
         )
       }
@@ -87,100 +91,53 @@ export function useSendPayment(): UseSendPaymentReturn {
       setError(null)
       setResult(null)
 
-      let txHash = ""
-
       try {
-        const stellarAsset = toStellarAsset(options.asset)
-        const server = getHorizonServer(networkConfig)
-        const sourceAcc = await server.loadAccount(wallet.address)
-        // Resolved once by the provider, so a signature can never be bound to
-        // a network the caller did not configure.
-        const { networkPassphrase } = networkConfig
-        const fee = await resolveFee(asFeeSource(server), options)
-
-        const operation = Operation.payment({
-          destination: options.to,
-          asset: stellarAsset,
-          amount: options.amount,
-        })
-
-        const builder = new TransactionBuilder(sourceAcc, {
-          fee,
-          networkPassphrase,
-        }).addOperation(operation)
-
-        if (options.memo) {
-          builder.addMemo(buildMemo(options.memo))
-        }
-
-        builder.setTimeout(30)
-        const tx = builder.build()
-
-        // Compute the transaction hash BEFORE submission so it is available
-        // even if Horizon times out (504). The hash is deterministic from the
-        // signed envelope, so we can return it on timeout and let the caller
-        // poll useTransaction(hash) to find out what actually happened.
-        txHash = tx.hash().toString("hex")
-        const xdr = tx.toXDR()
-
-        // Sign & submit via the active wallet's adapter
-        const adapter = getWalletAdapter(wallet.wallet)
-        const signedTxXdr = await adapter.signTransaction(xdr, {
-          address: wallet.address,
-          network,
-          networkPassphrase,
-        })
-
-        const signed = TransactionBuilder.fromXDR(signedTxXdr, networkPassphrase)
-        const res = await server.submitTransaction(signed)
-
-        if (!res.successful) {
-          const failedOutcome: SendPaymentResult = {
-            hash: res.hash,
-            status: "failed",
-          }
-          setResult(failedOutcome)
-          throw toSubmissionError(res)
-        }
-
-        const outcome: SendPaymentResult = {
-          hash: res.hash,
-          status: "success",
-        }
-
+        const outcome = await sendPayment({ network, networkConfig, wallet, queryStore }, options)
         setResult(outcome)
-
-        // Invalidate the sender's account/balance cache so any mounted hook
-        // sees fresh data on the next render cycle.
-        if (wallet.address) {
-          queryStore.invalidate(accountKey(networkConfig.horizonUrl, network, wallet.address))
-        }
-
         return outcome
       } catch (err) {
-        const stellarError = toStellarError(err)
-
-        // If toStellarError returns null, it was an abort (deliberate cancellation).
-        // Don't set error state for aborts.
-        if (!stellarError) {
-          return { hash: "", status: "failed", error: "Request was cancelled" }
+        if (err instanceof SendPaymentAbortedError) {
+          // A deliberate cancellation is not an error — mirrors the original
+          // hook's non-throwing abort return.
+          return { hash: "", status: "failed", error: err.message }
         }
 
-        // On TX_TIMEOUT (504), we have the hash but don't know the outcome yet.
-        // Return the hash so the caller can poll useTransaction(hash).
+        // Pre-flight guard failures (wallet not connected, no adapter, non-
+        // browser, wrong network) are thrown before any state would be
+        // touched — the original hook never called setError/setResult for
+        // these, so the code lives only on the thrown object.
+        if (isPreflightError(err)) {
+          throw err
+        }
+
+        const stellarError = err as StellarError
+
+        // On TX_TIMEOUT (504), the action's error carries the pre-computed
+        // hash so we can still record it as "pending" and let the caller poll
+        // useTransaction(hash).
         if (stellarError.code === "TX_TIMEOUT") {
           const timeoutOutcome: SendPaymentResult = {
-            hash: txHash,
+            hash: stellarError.hash ?? "",
             status: "pending",
           }
           setResult(timeoutOutcome)
           setError(stellarError)
-          // Attach the hash to the error so it's accessible
-          const errorWithHash = new StellarErrorClass(stellarError.code, stellarError.message, {
-            raw: stellarError.raw,
-            hash: txHash,
-          })
-          throw errorWithHash
+          throw stellarError
+        }
+
+        // Only a submission that Horizon accepted but reported unsuccessful
+        // (`res.successful === false`) records a "failed" result — the action
+        // marks that specific case. Every other failure (a rejected
+        // submitTransaction call, etc.) surfaces only as `error`, exactly as
+        // the original hook did.
+        if (
+          (stellarError as StellarError & { isSubmissionFailure?: boolean }).isSubmissionFailure
+        ) {
+          const failedOutcome: SendPaymentResult = {
+            hash: stellarError.hash ?? "",
+            status: "failed",
+          }
+          setResult(failedOutcome)
         }
 
         setError(stellarError)
@@ -198,40 +155,4 @@ export function useSendPayment(): UseSendPaymentReturn {
   }, [])
 
   return { send, loading, error, result, reset }
-}
-
-/**
- * Builds the SDK memo for a {@link MemoInput}.
- *
- * A bare string stays a text memo, which is what it always meant. The tagged
- * forms exist because the type matters on the wire: an exchange that asks for
- * an id memo will not credit a text memo containing the same digits.
- */
-function buildMemo(memo: MemoInput): Memo {
-  if (typeof memo === "string") return Memo.text(memo)
-
-  switch (memo.type) {
-    case "text":
-      return Memo.text(memo.value)
-    case "id":
-      return Memo.id(memo.value)
-    case "hash":
-      return Memo.hash(memo.value)
-    case "return":
-      return Memo.return(memo.value)
-    default: {
-      // Exhaustive: a new MemoInput variant fails to compile here.
-      const unreachable: never = memo
-      throw createStellarError("INVALID_MEMO", `Unsupported memo: ${JSON.stringify(unreachable)}.`)
-    }
-  }
-}
-
-function toStellarAsset(asset: Asset): StellarAsset {
-  if (isNativeAsset(asset)) return StellarAsset.native()
-  if (isIssuedAsset(asset)) return new StellarAsset(asset.code, asset.issuer)
-  throw createStellarError(
-    "VALIDATION_ERROR",
-    `Unsupported asset: ${JSON.stringify(asset)}. ` + `Pass "XLM" or { code, issuer }.`
-  )
 }
