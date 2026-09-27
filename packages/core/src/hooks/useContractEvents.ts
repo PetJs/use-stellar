@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { SorobanRpc, scValToNative, xdr } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
 import { createStellarError, toStellarError } from "../errors"
+import { onlineManager } from "../runtime/onlineManager"
 import type {
   ContractEvent,
   StellarError,
@@ -181,6 +182,9 @@ export function useContractEvents({
 
   const poll = useCallback(async () => {
     if (!enabled) return
+    // Offline, a poll can only fail. Skip it and keep the events already
+    // delivered; the cursor is untouched, so reconnecting resumes from it.
+    if (!onlineManager.isOnline()) return
 
     const ids = contractKey ? contractKey.split(",") : []
     if (ids.length === 0) return
@@ -234,6 +238,8 @@ export function useContractEvents({
       }
     } catch (err) {
       if (fetchId !== requestRef.current || !mountedRef.current) return
+      // The connection dropped mid-poll — not an error worth surfacing.
+      if (!onlineManager.isOnline()) return
 
       const message = err instanceof Error ? err.message : String(err)
 
@@ -268,9 +274,14 @@ export function useContractEvents({
     // Guard against non-positive intervals that would busy-loop setInterval.
     const ms = interval > 0 ? interval : DEFAULT_INTERVAL
     const id = setInterval(poll, ms)
+    // Catch up once on reconnect rather than waiting out the interval.
+    const unsubscribe = onlineManager.subscribe(online => {
+      if (online) poll()
+    })
 
     return () => {
       clearInterval(id)
+      unsubscribe()
       // Cancel any in-flight poll so a late response cannot update an
       // unmounted component or a stale subscription.
       requestRef.current = -1

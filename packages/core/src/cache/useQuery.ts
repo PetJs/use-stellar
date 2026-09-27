@@ -4,6 +4,7 @@ import { DEFAULT_STALE_TIME } from "./types"
 import type { QueryStore } from "./store"
 import { serializeKey } from "./keys"
 import { retryWithBackoff, getRetryAfterMs } from "../utils/retryWithBackoff"
+import { onlineManager } from "../runtime/onlineManager"
 
 /**
  * Options for `useQuery`.
@@ -71,6 +72,10 @@ export interface UseQueryResult<T> {
  *   exponential back-off. While retrying, the hook does not surface a loading
  *   state for new renders — the stale data is served until a success or final
  *   failure.
+ * - While offline (see `onlineManager`): no new request starts, forced or not,
+ *   and cached data stays visible. A request that fails because the connection
+ *   dropped does not overwrite the entry with an error. On reconnect, the query
+ *   refetches once if its data is stale.
  */
 export function useQuery<T>({
   queryKey,
@@ -142,6 +147,16 @@ export function useQuery<T>({
         return
       }
 
+      // Offline: the request can only fail, and its error would replace data
+      // that is still worth showing. Skip it; reconnecting refetches.
+      if (!onlineManager.isOnline()) {
+        return
+      }
+
+      // Kept so a request cut off by going offline can settle the entry back
+      // to how it was, rather than to an error about the connection.
+      const previousError = store.getSnapshot<T>(queryKey)?.error ?? null
+
       const promise = retryWithBackoff(() => queryFnRef.current(), {
         maxRetries: maxRetriesRef.current,
       })
@@ -156,6 +171,15 @@ export function useQuery<T>({
         rateLimitedUntilRef.current = null
         store.setData(queryKey, data)
       } catch (err) {
+        // The connection dropped mid-request. That says nothing about the
+        // query, so settle the entry as it was: `data` and `updatedAt` are left
+        // alone, the cached value stays visible, and the reconnect refetch
+        // sees it as stale.
+        if (!onlineManager.isOnline()) {
+          store.setError(queryKey, previousError)
+          return
+        }
+
         // Surface rate-limit window to polling hooks via ref (no re-render needed).
         const retryMs = getRetryAfterMs(err)
         if (retryMs !== null) {
@@ -206,6 +230,19 @@ export function useQuery<T>({
     }
     // eslint-disable-next-line
   }, [keyStr, store, enabled, fetch])
+
+  // ── Reconnect ─────────────────────────────────────────────────────────────
+  // Coming back online refetches once, and only if the data is stale. Every
+  // subscriber on a key hears the event, but the first one's request is
+  // registered in the store synchronously, so the rest await it instead of
+  // sending their own.
+  useEffect(() => {
+    if (!enabled) return
+
+    return onlineManager.subscribe(online => {
+      if (online) void fetch(false)
+    })
+  }, [enabled, fetch])
 
   // ── Imperative refetch ────────────────────────────────────────────────────
   const refetch = useCallback(() => {

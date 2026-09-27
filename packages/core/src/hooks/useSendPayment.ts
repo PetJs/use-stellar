@@ -11,6 +11,7 @@ import {
   StellarError as StellarErrorClass,
 } from "../errors"
 import { accountKey } from "../cache"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type {
   SendPaymentOptions,
   SendPaymentResult,
@@ -82,6 +83,9 @@ export function useSendPayment(): UseSendPaymentReturn {
             `Switch your wallet to ${wallet.network} or call refreshWalletNetwork() to update.`
         )
       }
+
+      // Fail fast offline — a signed payment is never queued for later.
+      if (!onlineManager.isOnline()) throw offlineError()
 
       setLoading(true)
       setError(null)

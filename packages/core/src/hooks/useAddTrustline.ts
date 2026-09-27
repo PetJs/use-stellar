@@ -11,6 +11,7 @@ import {
   StellarError as StellarErrorClass,
 } from "../errors"
 import { accountKey } from "../cache"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type {
   AddTrustlineOptions,
   TransactionResult,
@@ -71,6 +72,9 @@ export function useAddTrustline(): UseAddTrustlineReturn {
           "Invalid asset. Trustlines can only be created for issued assets, not XLM."
         )
       }
+
+      // Fail fast offline — a signed transaction is never queued for later.
+      if (!onlineManager.isOnline()) throw offlineError()
 
       setLoading(true)
       setError(null)
