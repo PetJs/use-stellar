@@ -53,7 +53,7 @@ export {
   getWalletAdapter,
   getWalletAdapters,
   hasWalletAdapter,
-} from "@use-stellar/core"
+} from "use-stellar"
 
 export type {
   // Types
@@ -97,4 +97,4 @@ export type {
   UseAnchorReturn,
   UseSep10AuthOptions,
   UseSep10AuthReturn,
-} from "@use-stellar/core"
+} from "use-stellar"

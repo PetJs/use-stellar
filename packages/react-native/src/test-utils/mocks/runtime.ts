@@ -2,7 +2,7 @@
  * Runtime Reset Utilities
  * ──────────────────────
  * Centralizes cleanup of all mock state between tests.
- * 
+ *
  * This module coordinates resetting:
  * - AppState listeners and current state
  * - NetInfo listeners and connectivity state
@@ -10,7 +10,7 @@
  * - Linking opened URLs
  * - WalletConnect session
  * - All jest.fn() mocks
- * 
+ *
  * Called by setup.ts beforeEach to prevent test pollution.
  */
 
@@ -23,7 +23,7 @@ import { resetWalletConnectMock } from "./WalletConnect"
 /**
  * Reset all mocks and runtime state.
  * Call this before each test to ensure clean isolation.
- * 
+ *
  * This is the single point of coordination for mock cleanup —
  * add new mock reset calls here as new mocks are introduced.
  */

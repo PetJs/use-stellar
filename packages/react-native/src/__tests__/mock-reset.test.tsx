@@ -1,10 +1,10 @@
 /**
  * Mock Reset and Isolation Tests
  * ──────────────────────────────
- * 
+ *
  * Verifies that all mocks properly reset between tests,
  * preventing state leakage and ensuring test isolation.
- * 
+ *
  * Acceptance Criteria:
  * - Each mock resets automatically before each test
  * - No state from one test affects the next

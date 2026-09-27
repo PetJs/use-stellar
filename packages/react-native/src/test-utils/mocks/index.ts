@@ -2,16 +2,16 @@
  * React Native Mock Modules
  * ──────────────────────────
  * Central export point for all test mocks and helpers.
- * 
+ *
  * Tests import helpers from here:
- * 
+ *
  * @example
  * import { setAppState, setOnline, openUrl } from "@use-stellar/react-native/test-utils/mocks"
  */
 
 // AppState helpers
 export { setAppState, getAppState, getAppStateListenerCount, resetAppStateMock } from "./AppState"
-export type { } from "./AppState"
+export type {} from "./AppState"
 
 // NetInfo helpers
 export { setOnline, getNetInfoState, getNetInfoListenerCount, resetNetInfoMock } from "./NetInfo"

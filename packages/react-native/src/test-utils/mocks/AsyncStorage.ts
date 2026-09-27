@@ -2,7 +2,7 @@
  * React Native AsyncStorage Mock
  * ──────────────────────────────
  * Provides a controllable in-memory mock of AsyncStorage.
- * 
+ *
  * Enables deterministic testing of storage operations:
  * - getItem() / setItem() / removeItem() / clear()
  * - Async behavior simulation
@@ -73,7 +73,7 @@ const mockAsyncStorage: MockAsyncStorage = {
 /**
  * Get the raw storage map for test inspection.
  * Use this to inspect stored values directly.
- * 
+ *
  * @example
  * const storage = getAsyncStorageMap()
  * expect(storage.get("wallet_session")).toBeDefined()

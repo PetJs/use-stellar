@@ -1,8 +1,4 @@
-import {
-  createAsyncStorageAdapter,
-  createInMemoryStorage,
-  type Storage,
-} from "./asyncStorageSession"
+import { createAsyncStorageAdapter, createInMemoryStorage } from "./asyncStorageSession"
 
 describe("asyncStorageSession", () => {
   describe("createInMemoryStorage", () => {
@@ -47,6 +43,7 @@ describe("asyncStorageSession", () => {
   })
 
   describe("createAsyncStorageAdapter", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ad-hoc native module double
     let mockAsyncStorage: any
 
     beforeEach(() => {
@@ -85,12 +82,8 @@ describe("asyncStorageSession", () => {
       const removeResult = storage.removeItem("key")
 
       expect(getResult instanceof Promise || getResult === null).toBe(true)
-      expect(
-        setResult === undefined || setResult instanceof Promise
-      ).toBe(true)
-      expect(
-        removeResult === undefined || removeResult instanceof Promise
-      ).toBe(true)
+      expect(setResult === undefined || setResult instanceof Promise).toBe(true)
+      expect(removeResult === undefined || removeResult instanceof Promise).toBe(true)
     })
 
     it("in-memory fallback stores and retrieves values", () => {

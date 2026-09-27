@@ -1,9 +1,9 @@
 /**
  * React Native Test Harness Validation Tests
  * ──────────────────────────────────────────
- * 
+ *
  * Validates that the test harness is properly configured and ready for use.
- * 
+ *
  * Coverage:
  * - renderWithStellar() initialization
  * - Mock lifecycle controls
@@ -13,7 +13,6 @@
 
 import React from "react"
 import { Text } from "react-native"
-import { render } from "@testing-library/react-native"
 import {
   renderWithStellar,
   setAppState,

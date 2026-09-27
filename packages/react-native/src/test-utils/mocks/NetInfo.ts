@@ -2,11 +2,11 @@
  * React Native NetInfo Mock
  * ────────────────────────
  * Provides a controllable mock of @react-native-community/netinfo.
- * 
+ *
  * Enables tests to simulate network connectivity transitions:
  * - online → offline (network unavailable)
  * - offline → online (network restored)
- * 
+ *
  * The mock tracks listeners and emits connectivity state changes.
  * Tests can assert that fetching pauses when offline.
  */
@@ -70,11 +70,11 @@ const mockNetInfo: MockNetInfo = {
 
 /**
  * Helper to change network connectivity and notify all listeners.
- * 
+ *
  * Called from test helpers to simulate:
  * - Network loss → setOnline(false)
  * - Network restored → setOnline(true)
- * 
+ *
  * @example
  * setOnline(false) // Pauses fetching
  * setOnline(true)  // Resumes fetching

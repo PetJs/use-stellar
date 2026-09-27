@@ -4,6 +4,7 @@ import { useStellarContext } from "../context/StellarProvider"
 import { getHorizonServer, isNativeAsset, isIssuedAsset } from "../utils"
 import { createStellarError, toStellarError } from "../errors"
 import { useQuery, paymentPathsKey } from "../cache"
+import { focusManager } from "../runtime/focusManager"
 import type { Asset, PaymentPath, UsePaymentPathsOptions, UsePaymentPathsReturn } from "../types"
 
 const DEFAULT_WATCH_INTERVAL = 10_000
@@ -85,7 +86,10 @@ interface PathPageData {
 /**
  * Finds the routes and quotes for converting one asset into another.
  *
- * Results are cached in the shared QueryStore and deduplicated.
+ * Results are cached in the shared QueryStore and deduplicated. With `watch`,
+ * quotes are re-polled every `interval` ms while the app is focused (see
+ * `focusManager`); polling pauses in the background and refreshes once on
+ * return.
  *
  * @example
  * const { paths, lastUpdated } = usePaymentPaths({
@@ -183,8 +187,18 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
   useEffect(() => {
     if (!enabled || !watch) return
     const ms = interval > 0 ? interval : DEFAULT_WATCH_INTERVAL
-    const id = setInterval(() => refetchRef.current(), ms)
-    return () => clearInterval(id)
+    // Quotes nobody can see only spend Horizon quota: skip ticks while the app
+    // is in the background, and refresh once when it comes back.
+    const id = setInterval(() => {
+      if (focusManager.isFocused()) refetchRef.current()
+    }, ms)
+    const unsubscribe = focusManager.subscribe(focused => {
+      if (focused) refetchRef.current()
+    })
+    return () => {
+      clearInterval(id)
+      unsubscribe()
+    }
   }, [
     enabled,
     watch,

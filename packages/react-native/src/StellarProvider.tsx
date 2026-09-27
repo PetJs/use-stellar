@@ -12,12 +12,13 @@
  * always-focused behavior if optional native modules are unavailable.
  */
 
-import React, { useMemo, type ReactNode } from "react"
+import React, { useEffect, useMemo, type ReactNode } from "react"
 import {
   StellarProvider as CoreStellarProvider,
+  focusManager as coreFocusManager,
   type StellarProviderProps as CoreStellarProviderProps,
-} from "@use-stellar/core"
-import type { AutoConnectOptions, CustomNetworkConfig, QueryConfig, StellarNetwork } from "@use-stellar/core"
+} from "use-stellar"
+import type { AutoConnectOptions } from "use-stellar"
 import type { Storage } from "./platform/asyncStorageSession"
 import { createAsyncStorageAdapter } from "./platform/asyncStorageSession"
 import { createAppStateFocusManager } from "./platform/appStateFocus"
@@ -101,7 +102,7 @@ export interface NativeStellarProviderProps extends Omit<CoreStellarProviderProp
  *
  * ```tsx
  * import { StellarProvider } from "@use-stellar/react-native"
- * import { useBalance } from "@use-stellar/core"
+ * import { useBalance } from "use-stellar"
  *
  * function App() {
  *   return (
@@ -182,7 +183,9 @@ export function StellarProvider({
   onlineManager,
   warnOnFallback = true,
 }: NativeStellarProviderProps) {
-  // Determine the storage backend for autoConnect sessions
+  // Determine the storage backend for autoConnect sessions. Resolved now for
+  // its fallback warning; not yet passed to the core provider (see below).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolvedStorage = useMemo(() => {
     if (storage) return storage
 
@@ -238,7 +241,9 @@ export function StellarProvider({
     return appStateFocus
   }, [focusManager, warnOnFallback])
 
-  // Determine the online manager
+  // Determine the online manager. Resolved now for its fallback warning; not
+  // yet passed to core (see below).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolvedOnlineManager = useMemo(() => {
     if (onlineManager) return onlineManager
 
@@ -295,14 +300,18 @@ export function StellarProvider({
     [network, networkConfig, queryConfig, resolvedAutoConnect, children]
   )
 
-  // For now, render the core provider as-is. In future implementations, when
-  // the core provider gains support for runtime focus/online managers and
-  // capability registration, we would:
-  // 1. Pass focusManager/onlineManager to the core provider
-  // 2. Register capabilities: { kind: "native" }
-  // 3. Wrap storage at the useWallet level
+  // Drive core's shared focus manager from AppState, so polling hooks pause
+  // while the app is backgrounded. The AppState manager reports its current
+  // state on subscribe, so core starts from the real state. Unmounting
+  // restores core's default signal.
+  useEffect(() => {
+    coreFocusManager.setEventListener(setFocused => resolvedFocusManager.subscribe(setFocused))
+    return () => coreFocusManager.setEventListener()
+  }, [resolvedFocusManager])
+
+  // Not wired yet: the online manager (core has no connectivity manager on
+  // this branch), capability registration ({ kind: "native" }), and swapping
+  // storage in at the useWallet level.
 
   return <CoreStellarProvider {...coreProps} />
 }
-
-export type { NativeStellarProviderProps }

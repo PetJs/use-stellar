@@ -1,6 +1,10 @@
 // Stellar React SDK - Main entry point
 // ── Provider ───────────────────────────────────────────────────────────────
-export { StellarProvider, WALLET_SESSION_STORAGE_KEY } from "./context/StellarProvider"
+export {
+  StellarProvider,
+  WALLET_SESSION_STORAGE_KEY,
+  useStellarContext,
+} from "./context/StellarProvider"
 export type { StellarProviderProps, QueryConfig } from "./context/StellarProvider"
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -93,6 +97,8 @@ export type { StellarErrorCode, StellarErrorOptions } from "./errors"
 
 // ── Utilities ────────────────────────────────────────────────────────────
 export { DEFAULT_FEE_MULTIPLIER } from "./utils/fees"
+export { focusManager, FocusManager } from "./runtime/focusManager"
+export type { FocusListener, FocusEventSetup } from "./runtime/focusManager"
 export { NETWORK_CONFIGS, getNetworkPassphrase } from "./types"
 export {
   isBrowser,

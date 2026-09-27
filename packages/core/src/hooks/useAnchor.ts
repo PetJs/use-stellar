@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { StellarToml } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
-import { isBrowser, isValidStellarAddress } from "../utils"
+import { isBrowser, isReactNative, isValidStellarAddress } from "../utils"
 import { createStellarError, toStellarError } from "../errors"
 import type { UseAnchorOptions, UseAnchorReturn, AnchorInfo, AnchorCurrency } from "../types"
 
@@ -52,8 +52,9 @@ export function useAnchor({
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchAnchor = useCallback(async () => {
-    // SSR guard: no-op on server
-    if (!isBrowser()) {
+    // SSR guard: no-op on server. React Native has no `window` but can fetch
+    // stellar.toml like a browser, so it is not treated as a server.
+    if (!isBrowser() && !isReactNative()) {
       return
     }
 
@@ -85,6 +86,8 @@ export function useAnchor({
     setLoading(true)
     setError(null)
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
     try {
       // Enforce HTTPS on mainnet
       const allowHttp =
@@ -106,20 +109,26 @@ export function useAnchor({
         }
       }
 
-      // Fetch with timeout and size limit
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        const timeoutId = setTimeout(() => {
-          controller.abort()
+      // Settles on timeout or abort, whichever comes first. The SDK's resolver
+      // takes no AbortSignal, so aborting cannot cancel its HTTP request — but
+      // it does settle this call immediately, so a superseded or unmounted
+      // lookup releases its timer and closure instead of waiting on the
+      // network. Its late result is then dropped by the `fetchId` guard.
+      const cutoffPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
           reject(
             createStellarError(
               "NETWORK_ERROR",
               `stellar.toml fetch timed out after ${TOML_FETCH_TIMEOUT}ms`
             )
           )
+          controller.abort()
         }, TOML_FETCH_TIMEOUT)
 
-        // Clean up timeout if request completes
-        controller.signal.addEventListener("abort", () => clearTimeout(timeoutId))
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(timeoutId)
+          reject(createStellarError("NETWORK_ERROR", "stellar.toml fetch was aborted"))
+        })
       })
 
       const resolvePromise = StellarToml.Resolver.resolve(normalizedDomain, {
@@ -127,7 +136,7 @@ export function useAnchor({
         timeout: TOML_FETCH_TIMEOUT,
       })
 
-      const toml = await Promise.race([resolvePromise, timeoutPromise])
+      const toml = await Promise.race([resolvePromise, cutoffPromise])
 
       if (fetchId !== requestRef.current) return
 
@@ -218,6 +227,7 @@ export function useAnchor({
         setError(stellarError)
       }
     } finally {
+      clearTimeout(timeoutId)
       if (fetchId === requestRef.current) {
         setLoading(false)
         abortControllerRef.current = null

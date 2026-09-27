@@ -2,7 +2,7 @@
  * React Native Linking Mock
  * ────────────────────────
  * Provides a controllable mock of React Native's Linking module.
- * 
+ *
  * Enables tests to:
  * - Capture and assert on URL open attempts (e.g., wallet deep links)
  * - Simulate link opening success/failure
@@ -45,9 +45,9 @@ const mockLinking: MockLinking = {
 
 /**
  * Helper to simulate opening a URL and verify it was recorded.
- * 
+ *
  * Tests can call this helper and then assert openURL was called:
- * 
+ *
  * @example
  * await openUrl("https://example.com/auth")
  * expect(getOpenedUrls()).toContain("https://example.com/auth")
@@ -58,7 +58,7 @@ export async function openUrl(url: string): Promise<void> {
 
 /**
  * Get all URLs that were opened during this test.
- * 
+ *
  * @example
  * const urls = getOpenedUrls()
  * expect(urls).toHaveLength(1)
@@ -70,7 +70,7 @@ export function getOpenedUrls(): string[] {
 
 /**
  * Set whether openURL should succeed or fail.
- * 
+ *
  * @example
  * setLinkingSuccess(false)
  * await expect(openUrl("...")).rejects.toThrow()

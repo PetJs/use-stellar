@@ -2,11 +2,11 @@
  * React Native AppState Mock
  * ──────────────────────────
  * Provides a controllable mock of React Native's AppState module.
- * 
+ *
  * Enables tests to simulate app lifecycle transitions:
  * - active → background (suspension)
  * - background → active (resume)
- * 
+ *
  * The mock tracks listeners and emits state changes when setAppState() is called.
  * Tests can assert that polling pauses when the app backgrounded.
  */
@@ -19,6 +19,8 @@ interface AppStateListener {
 
 interface MockAppState {
   currentAppState: AppStateStatus
+  /** Mirrors React Native's `AppState.currentState`, which adapters read. */
+  readonly currentState: AppStateStatus
   listeners: Set<AppStateListener>
   addEventListener(type: "change", listener: AppStateListener): { remove(): void }
   removeEventListener(type: "change", listener: AppStateListener): void
@@ -31,6 +33,9 @@ interface MockAppState {
  */
 const mockAppState: MockAppState = {
   currentAppState: "active",
+  get currentState() {
+    return this.currentAppState
+  },
   listeners: new Set(),
 
   addEventListener(type: "change", listener: AppStateListener) {
@@ -58,11 +63,11 @@ const mockAppState: MockAppState = {
 
 /**
  * Helper to change app state and notify all listeners.
- * 
+ *
  * Called from test helpers to simulate:
  * - User minimizing the app → "background"
  * - User returning to the app → "active"
- * 
+ *
  * @example
  * setAppState("background") // Pauses polling
  * setAppState("active")     // Resumes polling

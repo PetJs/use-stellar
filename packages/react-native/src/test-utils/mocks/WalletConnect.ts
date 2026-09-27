@@ -2,7 +2,7 @@
  * WalletConnect Mock
  * ──────────────────
  * Provides a controllable mock of WalletConnect client lifecycle.
- * 
+ *
  * Enables tests to:
  * - Simulate connection/disconnection flows
  * - Mock signing interactions
@@ -74,7 +74,7 @@ const mockWalletConnectClient: MockWalletConnectClient = {
 
 /**
  * Helper to simulate WalletConnect connection.
- * 
+ *
  * @example
  * await setWalletConnectConnected(true)
  * expect(client.isConnected).toBe(true)
@@ -103,7 +103,7 @@ export function getWalletConnectSession(): MockWalletConnectSession | null {
 
 /**
  * Mock a signing operation.
- * 
+ *
  * @example
  * const signature = await signWithWalletConnect("message")
  * expect(signature).toBeDefined()
