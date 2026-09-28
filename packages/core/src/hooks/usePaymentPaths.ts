@@ -5,6 +5,7 @@ import { getHorizonServer, isNativeAsset, isIssuedAsset } from "../utils"
 import { createStellarError, toStellarError } from "../errors"
 import { useQuery, paymentPathsKey } from "../cache"
 import type { Asset, PaymentPath, UsePaymentPathsOptions, UsePaymentPathsReturn } from "../types"
+import { focusManager } from "../runtime/focusManager"
 
 const DEFAULT_WATCH_INTERVAL = 10_000
 const RATE_SCALE = 7
@@ -117,14 +118,18 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
   const amount = (sourceAmount ?? destinationAmount ?? "") as string
   const addressFilter = destinationAddress ?? sourceAddress
 
-  const queryKey = paymentPathsKey(
-    networkConfig.horizonUrl,
-    network,
-    mode,
-    sourceKey,
-    destinationKey,
-    amount,
-    addressFilter
+  const queryKey = useMemo(
+    () =>
+      paymentPathsKey(
+        networkConfig.horizonUrl,
+        network,
+        mode,
+        sourceKey,
+        destinationKey,
+        amount,
+        addressFilter
+      ),
+    [networkConfig.horizonUrl, network, mode, sourceKey, destinationKey, amount, addressFilter]
   )
 
   const {
@@ -183,8 +188,31 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
   useEffect(() => {
     if (!enabled || !watch) return
     const ms = interval > 0 ? interval : DEFAULT_WATCH_INTERVAL
-    const id = setInterval(() => refetchRef.current(), ms)
-    return () => clearInterval(id)
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(() => {
+        if (focusManager.isFocused()) refetchRef.current()
+      }, ms)
+    }
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
+      }
+      if (!focused) return
+      const entry = queryStore.getSnapshot(queryKey)
+      if (entry?.subscribers && !queryStore.isLoading(queryKey) && !queryStore.isFresh(queryKey)) {
+        refetchRef.current()
+      }
+      start()
+    })
+    return () => {
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
+    }
   }, [
     enabled,
     watch,
@@ -195,6 +223,8 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
     addressFilter,
     network,
     networkConfig.horizonUrl,
+    queryStore,
+    queryKey,
   ])
 
   const error = rawError ? toStellarError(rawError) : null

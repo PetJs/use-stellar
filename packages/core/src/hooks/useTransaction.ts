@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
 import { getHorizonServer } from "../utils"
 import { toStellarError } from "../errors"
 import { useQuery, transactionKey } from "../cache"
 import type { StellarError, TransactionResult, TransactionStatus } from "../types"
+import { focusManager } from "../runtime/focusManager"
 
 export interface UseTransactionOptions {
   hash: string | null
@@ -46,9 +47,13 @@ export function useTransaction({
 }: UseTransactionOptions): UseTransactionReturn {
   const { network, networkConfig, queryStore } = useStellarContext()
 
-  const queryKey = hash
-    ? transactionKey(networkConfig.horizonUrl, network, hash)
-    : (["transaction", "disabled"] as const)
+  const queryKey = useMemo(
+    () =>
+      hash
+        ? transactionKey(networkConfig.horizonUrl, network, hash)
+        : (["transaction", "disabled"] as const),
+    [hash, networkConfig.horizonUrl, network]
+  )
 
   const {
     data: transaction,
@@ -104,14 +109,42 @@ export function useTransaction({
   useEffect(() => {
     if (!watch || !hash) return
 
-    const id = setInterval(() => {
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(() => {
+        if (!focusManager.isFocused()) return
+        const status = transactionRef.current?.status
+        if (status === "success" || status === "failed") return
+        refetchRef.current()
+      }, 3000)
+    }
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
+      }
+      if (!focused) return
+      const entry = queryStore.getSnapshot(queryKey)
       const status = transactionRef.current?.status
-      if (status === "success" || status === "failed") return
-      refetchRef.current()
-    }, 3000)
+      if (
+        entry?.subscribers &&
+        status !== "success" &&
+        status !== "failed" &&
+        !queryStore.isLoading(queryKey) &&
+        !queryStore.isFresh(queryKey, staleTime)
+      )
+        refetchRef.current()
+      start()
+    })
 
-    return () => clearInterval(id)
-  }, [watch, hash])
+    return () => {
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
+    }
+  }, [watch, hash, queryStore, network, networkConfig.horizonUrl, staleTime, queryKey])
 
   const error = rawError ? toStellarError(rawError) : null
 

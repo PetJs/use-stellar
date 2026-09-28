@@ -8,6 +8,7 @@ import type {
   UseContractEventsOptions,
   UseContractEventsReturn,
 } from "../types"
+import { focusManager } from "../runtime/focusManager"
 
 /** How often (ms) to poll the RPC when no interval is given. */
 const DEFAULT_INTERVAL = 5_000
@@ -157,6 +158,7 @@ export function useContractEvents({
   // unmount.
   const requestRef = useRef(0)
   const mountedRef = useRef(true)
+  const pollingRef = useRef(false)
 
   // `contractIds` and `topics` are almost always inline array literals — a new
   // array on every render. Depending on the arrays themselves would tear down
@@ -181,10 +183,12 @@ export function useContractEvents({
 
   const poll = useCallback(async () => {
     if (!enabled) return
+    if (pollingRef.current) return
 
     const ids = contractKey ? contractKey.split(",") : []
     if (ids.length === 0) return
 
+    pollingRef.current = true
     const fetchId = ++requestRef.current
     setLoading(true)
 
@@ -249,6 +253,7 @@ export function useContractEvents({
           : toStellarError(err)
       )
     } finally {
+      pollingRef.current = false
       if (fetchId === requestRef.current && mountedRef.current) {
         setLoading(false)
       }
@@ -263,14 +268,30 @@ export function useContractEvents({
       return
     }
 
-    poll()
-
     // Guard against non-positive intervals that would busy-loop setInterval.
     const ms = interval > 0 ? interval : DEFAULT_INTERVAL
-    const id = setInterval(poll, ms)
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(poll, ms)
+    }
+    if (focusManager.isFocused()) void poll()
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
+      }
+      if (focused) {
+        void poll()
+        start()
+      }
+    })
 
     return () => {
-      clearInterval(id)
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
       // Cancel any in-flight poll so a late response cannot update an
       // unmounted component or a stale subscription.
       requestRef.current = -1
