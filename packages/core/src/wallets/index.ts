@@ -1,9 +1,8 @@
 export {
   FREIGHTER_WALLET_TYPE,
   NETWORK_PASSPHRASES,
-  freighterAdapter,
   resolveNetworkFromPassphrase,
-} from "./freighterAdapter"
+} from "./constants"
 export {
   getWalletAdapter,
   getWalletAdapters,

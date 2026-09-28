@@ -1,9 +1,7 @@
 import type { StellarNetwork, WalletType } from "../types"
 import type { WalletAdapter } from "./types"
 import { WalletAdapterError } from "./types"
-import { albedoAdapter } from "./albedoAdapter"
 import { getNetworkPassphrase } from "../types"
-import { freighterAdapter } from "./freighterAdapter"
 
 function createUnsupportedAdapter(type: WalletType, name: string): WalletAdapter {
   const createError = () =>
@@ -14,11 +12,19 @@ function createUnsupportedAdapter(type: WalletType, name: string): WalletAdapter
       type,
       name,
       supported: false,
+      platforms: ["web"],
     },
     async isAvailable() {
+      if (typeof navigator !== "undefined" && navigator.product === "ReactNative") return false
       return false
     },
     async connect() {
+      if (typeof navigator !== "undefined" && navigator.product === "ReactNative") {
+        throw new WalletAdapterError(
+          "wallet_unavailable",
+          `${name} cannot be used inside a native app.`
+        )
+      }
       throw createError()
     },
     async getNetworkDetails(network: StellarNetwork) {
@@ -34,8 +40,6 @@ function createUnsupportedAdapter(type: WalletType, name: string): WalletAdapter
 }
 
 const WALLET_ADAPTERS: Record<string, WalletAdapter> = {
-  freighter: freighterAdapter,
-  albedo: albedoAdapter,
   lobstr: createUnsupportedAdapter("lobstr", "LOBSTR"),
   rabet: createUnsupportedAdapter("rabet", "Rabet"),
 }

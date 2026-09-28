@@ -3,6 +3,7 @@ import { isIssuedAsset } from "../utils"
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { usePayments } from "./usePayments"
+import { filterPayments } from "../queries/payments"
 import type { UsePaymentHistoryOptions, UsePaymentHistoryReturn, NormalizedPayment } from "../types"
 
 export function usePaymentHistory({
@@ -42,23 +43,8 @@ export function usePaymentHistory({
   useEffect(() => {
     if (basePayments.loading || basePayments.error) return
 
-    const newMatches = basePayments.payments.filter(p => {
-      if (seenIdsRef.current.has(p.id)) return false
-
-      let match = true
-      if (direction !== "all" && p.direction !== direction) match = false
-      if (isIssuedAsset(asset) && p.asset !== "XLM") {
-        if (isIssuedAsset(p.asset)) {
-          if (p.asset.code !== asset.code || p.asset.issuer !== asset.issuer) match = false
-        } else {
-          match = false // Record is XLM but we are filtering for a specific issued asset
-        }
-      } else if (asset !== "all" && p.asset === "XLM") {
-        match = false // Record is XLM but filter is an object
-      }
-
-      return match
-    })
+    const unseen = basePayments.payments.filter(p => !seenIdsRef.current.has(p.id))
+    const newMatches = filterPayments(unseen, { direction, asset })
 
     if (newMatches.length > 0 || basePayments.payments.length > 0) {
       newMatches.forEach(p => seenIdsRef.current.add(p.id))

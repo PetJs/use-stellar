@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { SorobanRpc, scValToNative, xdr } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
-import { createStellarError, toStellarError } from "../errors"
+import {
+  createContractEventPoller,
+  DEFAULT_POLL_INTERVAL,
+  DEFAULT_BUFFER_SIZE,
+  type ContractEventPoller,
+} from "../runtime/contractEventPoller"
 import type {
   ContractEvent,
   StellarError,
@@ -10,102 +14,6 @@ import type {
 } from "../types"
 import { focusManager } from "../runtime/focusManager"
 
-/** How often (ms) to poll the RPC when no interval is given. */
-const DEFAULT_INTERVAL = 5_000
-
-/** How many events are kept in memory when no bufferSize is given. */
-const DEFAULT_BUFFER_SIZE = 200
-
-/** An SDK/RPC event as it arrives, before decoding. */
-interface RpcEvent {
-  id: string
-  contractId?: unknown
-  ledger: number
-  ledgerClosedAt: string
-  pagingToken: string
-  topic?: unknown[]
-  value?: unknown
-}
-
-/** Renders an ScVal (or an already-encoded string) as base64 XDR. */
-function toRawXdr(value: unknown): string {
-  if (typeof value === "string") return value
-
-  try {
-    return (value as xdr.ScVal).toXDR("base64")
-  } catch {
-    return ""
-  }
-}
-
-/** Decodes an ScVal, or an already-encoded base64 string, to a native value. */
-function decodeScVal(value: unknown): unknown {
-  if (typeof value === "string") {
-    return scValToNative(xdr.ScVal.fromXDR(value, "base64"))
-  }
-  return scValToNative(value as xdr.ScVal)
-}
-
-/**
- * Converts one RPC event into a {@link ContractEvent}.
- *
- * Event values are contract-defined, so decoding can fail on a shape the SDK
- * does not know. That is not a reason to throw away the event — the raw XDR is
- * always populated, and a failure is flagged rather than hidden.
- */
-function toContractEvent(event: RpcEvent): ContractEvent {
-  const rawTopics = (event.topic ?? []).map(toRawXdr)
-  const rawValue = toRawXdr(event.value)
-
-  let topics: unknown[] = []
-  let value: unknown = null
-  let decodeFailed = false
-
-  try {
-    topics = (event.topic ?? []).map(decodeScVal)
-  } catch {
-    decodeFailed = true
-  }
-
-  try {
-    value = event.value === undefined ? null : decodeScVal(event.value)
-  } catch {
-    decodeFailed = true
-  }
-
-  return {
-    id: event.id,
-    contractId: String(event.contractId ?? ""),
-    ledger: event.ledger,
-    ledgerClosedAt: event.ledgerClosedAt,
-    topics,
-    value,
-    raw: { topics: rawTopics, value: rawValue },
-    ...(decodeFailed ? { decodeFailed: true } : {}),
-  }
-}
-
-/**
- * Recognises the RPC's "start ledger is outside the retention window" refusal.
- *
- * Providers word this differently, so several shapes are matched — but only to
- * add guidance, never to change a classification that structured data already
- * settled.
- */
-function isRetentionWindowError(message: string): boolean {
-  const lower = message.toLowerCase()
-
-  return (
-    (lower.includes("ledger") &&
-      (lower.includes("retention") ||
-        lower.includes("not available") ||
-        lower.includes("must be within") ||
-        lower.includes("is before") ||
-        lower.includes("older than"))) ||
-    lower.includes("start ledger")
-  )
-}
-
 /**
  * Subscribes to the events a Soroban contract emits.
  *
@@ -113,9 +21,10 @@ function isRetentionWindowError(message: string): boolean {
  * contract storage: a token contract emits `transfer`, a DEX emits `swap`, and
  * the event carries *what changed* rather than only that something did.
  *
- * Unlike Horizon payments there is no streaming endpoint, so this polls the
- * RPC's `getEvents` and advances a cursor between calls. The cursor is what
- * stops the same events arriving on every poll.
+ * Unlike Horizon payments there is no streaming endpoint, so the shared
+ * {@link createContractEventPoller} polls the RPC's `getEvents` and advances a
+ * cursor between calls. This hook is a thin React adapter over that poller:
+ * all polling, cursor tracking, decoding, and buffering logic lives there.
  *
  * **Retention.** RPC providers keep a limited ledger window, typically around
  * 24 hours. A `startLedger` older than that is refused by the server — it is
@@ -136,7 +45,7 @@ export function useContractEvents({
   contractIds,
   topics,
   startLedger,
-  interval = DEFAULT_INTERVAL,
+  interval = DEFAULT_POLL_INTERVAL,
   bufferSize = DEFAULT_BUFFER_SIZE,
   enabled = true,
 }: UseContractEventsOptions): UseContractEventsReturn {
@@ -148,17 +57,7 @@ export function useContractEvents({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<StellarError | null>(null)
 
-  // The paging token from the last response. Polling from here rather than
-  // from `startLedger` is what prevents duplicates on every poll.
-  const cursorRef = useRef<string | null>(null)
-  // Ids already delivered, as a second line of defence if a provider replays
-  // an event at a cursor boundary.
-  const seenRef = useRef<Set<string>>(new Set())
-  // Monotonic id used to drop out-of-order responses and any that land after
-  // unmount.
-  const requestRef = useRef(0)
-  const mountedRef = useRef(true)
-  const pollingRef = useRef(false)
+  const pollerRef = useRef<ContractEventPoller | null>(null)
 
   // `contractIds` and `topics` are almost always inline array literals — a new
   // array on every render. Depending on the arrays themselves would tear down
@@ -168,138 +67,43 @@ export function useContractEvents({
   const topicKey = topics ? JSON.stringify(topics) : ""
 
   useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
-
-  // A change of filter is a different subscription, so the cursor and the
-  // dedupe set start over.
-  useEffect(() => {
-    cursorRef.current = null
-    seenRef.current = new Set()
-  }, [contractKey, topicKey, startLedger])
-
-  const poll = useCallback(async () => {
-    if (!enabled) return
-    if (pollingRef.current) return
-
-    const ids = contractKey ? contractKey.split(",") : []
-    if (ids.length === 0) return
-
-    pollingRef.current = true
-    const fetchId = ++requestRef.current
-    setLoading(true)
-
-    try {
-      const server = new SorobanRpc.Server(sorobanUrl, {
-        allowHttp: sorobanUrl.startsWith("http://"),
-      })
-
-      const filter: SorobanRpc.Api.EventFilter = {
-        type: "contract",
-        contractIds: ids,
-        ...(topics ? { topics } : {}),
-      }
-
-      // `cursor` and `startLedger` are mutually exclusive: the first call
-      // anchors the range, every later call continues from the cursor.
-      const request = cursorRef.current
-        ? { filters: [filter], cursor: cursorRef.current }
-        : {
-            filters: [filter],
-            startLedger: startLedger ?? (await server.getLatestLedger()).sequence,
-          }
-
-      const response = await server.getEvents(request)
-
-      if (fetchId !== requestRef.current || !mountedRef.current) return
-
-      const incoming = (response.events ?? []) as unknown as RpcEvent[]
-
-      // Advance the cursor even when nothing matched, so an idle contract does
-      // not re-scan the same ledgers forever.
-      const lastToken = incoming[incoming.length - 1]?.pagingToken
-      if (lastToken) cursorRef.current = lastToken
-
-      setLatestLedger(response.latestLedger ?? null)
-      setError(null)
-
-      const fresh = incoming.filter(event => !seenRef.current.has(event.id))
-      if (fresh.length > 0) {
-        fresh.forEach(event => seenRef.current.add(event.id))
-
-        setEvents(previous => {
-          const next = [...previous, ...fresh.map(toContractEvent)]
-          // Bounded buffer: the oldest events are dropped once it is full.
-          return next.length > bufferSize ? next.slice(next.length - bufferSize) : next
-        })
-      }
-    } catch (err) {
-      if (fetchId !== requestRef.current || !mountedRef.current) return
-
-      const message = err instanceof Error ? err.message : String(err)
-
-      setError(
-        isRetentionWindowError(message)
-          ? createStellarError(
-              "LEDGER_OUT_OF_RETENTION",
-              `The RPC server refused this ledger range: ${message}. ` +
-                "RPC providers retain a limited window of ledgers — typically around 24 hours. " +
-                "Request a more recent startLedger, or use an archival RPC provider for older history.",
-              { raw: err }
-            )
-          : toStellarError(err)
-      )
-    } finally {
-      pollingRef.current = false
-      if (fetchId === requestRef.current && mountedRef.current) {
-        setLoading(false)
-      }
-    }
-    // `contractIds` and `topics` are covered by their serialized keys above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- topics is represented by topicKey to avoid inline-array resubscriptions.
-  }, [enabled, contractKey, topicKey, startLedger, sorobanUrl, bufferSize])
-
-  useEffect(() => {
     if (!enabled) {
       // Disabled means disabled: no request, no timer.
       return
     }
 
-    // Guard against non-positive intervals that would busy-loop setInterval.
-    const ms = interval > 0 ? interval : DEFAULT_INTERVAL
-    let id: ReturnType<typeof setInterval> | undefined
-    const start = () => {
-      if (id !== undefined) clearInterval(id)
-      if (!focusManager.isFocused()) return
-      id = setInterval(poll, ms)
-    }
-    if (focusManager.isFocused()) void poll()
-    start()
-    const unsubscribeFocus = focusManager.subscribe(focused => {
-      if (id !== undefined) {
-        clearInterval(id)
-        id = undefined
-      }
-      if (focused) {
-        void poll()
-        start()
-      }
+    const ids = contractKey ? contractKey.split(",") : []
+    if (ids.length === 0) return
+
+    const poller = createContractEventPoller(
+      { sorobanUrl },
+      { contractIds: ids, topics, startLedger, interval, bufferSize }
+    )
+    pollerRef.current = poller
+
+    const unsubscribe = poller.subscribe(snapshot => {
+      setEvents(snapshot.events)
+      setLatestLedger(snapshot.latestLedger)
+      setLoading(snapshot.loading)
+      setError(snapshot.error)
     })
 
+    poller.start()
+
     return () => {
-      if (id !== undefined) clearInterval(id)
-      unsubscribeFocus()
-      // Cancel any in-flight poll so a late response cannot update an
-      // unmounted component or a stale subscription.
-      requestRef.current = -1
+      unsubscribe()
+      poller.stop()
+      pollerRef.current = null
     }
-  }, [poll, enabled, interval])
+    // `contractIds` and `topics` are covered by their serialized keys above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- topics is represented by topicKey to avoid inline-array resubscriptions.
+  }, [enabled, contractKey, topicKey, startLedger, sorobanUrl, interval, bufferSize])
 
   const clear = useCallback(() => {
-    setEvents([])
+    // The poller's `clear()` emits its own snapshot synchronously to the
+    // subscriber above, which updates `events` — no separate setState needed
+    // here. When disabled (no poller instance), there is nothing to clear.
+    pollerRef.current?.clear()
   }, [])
 
   return { events, latestLedger, loading, error, clear }

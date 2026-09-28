@@ -1,5 +1,7 @@
 import {
   isBrowser,
+  isReactNative,
+  canSignTransactions,
   isValidStellarAddress,
   shortenAddress,
   formatAmount,
@@ -10,6 +12,53 @@ import {
 describe("isBrowser", () => {
   it("returns true in jsdom (window is defined)", () => {
     expect(isBrowser()).toBe(true)
+  })
+})
+
+// ── isReactNative ───────────────────────────────────────────────────────────
+describe("isReactNative", () => {
+  it("returns false in jsdom (navigator.product is not ReactNative)", () => {
+    expect(isReactNative()).toBe(false)
+  })
+
+  it("returns true when navigator.product is ReactNative", () => {
+    const original = Object.getOwnPropertyDescriptor(global.navigator, "product")
+    Object.defineProperty(global.navigator, "product", {
+      value: "ReactNative",
+      configurable: true,
+    })
+
+    expect(isReactNative()).toBe(true)
+
+    if (original) {
+      Object.defineProperty(global.navigator, "product", original)
+    }
+  })
+})
+
+// ── canSignTransactions ──────────────────────────────────────────────────────
+describe("canSignTransactions", () => {
+  it("returns true in jsdom (isBrowser is true)", () => {
+    expect(canSignTransactions()).toBe(true)
+  })
+
+  it("returns true when React Native is detected, independent of isBrowser", () => {
+    // jsdom always defines `window`, so this asserts canSignTransactions is
+    // satisfied by isReactNative() alone — the real RN runtime has no window,
+    // and this proves the OR-composition, not the window-less environment.
+    const original = Object.getOwnPropertyDescriptor(global.navigator, "product")
+    Object.defineProperty(global.navigator, "product", {
+      value: "ReactNative",
+      configurable: true,
+    })
+
+    expect(isBrowser()).toBe(true)
+    expect(isReactNative()).toBe(true)
+    expect(canSignTransactions()).toBe(true)
+
+    if (original) {
+      Object.defineProperty(global.navigator, "product", original)
+    }
   })
 })
 
