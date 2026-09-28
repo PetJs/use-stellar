@@ -18,5 +18,6 @@ export default defineConfig({
     "@react-native-async-storage/async-storage",
     "@react-native-community/netinfo",
     "@walletconnect/react-native-compat",
+    "use-stellar",
   ],
 })

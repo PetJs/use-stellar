@@ -8,7 +8,15 @@
  * Falls back to "always focused" if AppState is unavailable.
  */
 
-import type { AppStateStatus } from "react-native"
+type AppStateStatus = "active" | "background" | "inactive" | "unknown" | "extension"
+
+type AppStateLike = {
+  currentState: AppStateStatus
+  addEventListener: (
+    event: "change",
+    handler: (state: AppStateStatus) => void
+  ) => { remove?: () => void }
+}
 
 /**
  * Focus manager interface for tracking app foreground/background state.
@@ -38,7 +46,7 @@ export interface FocusManager {
  * returns a fallback manager that is always focused.
  */
 export function createAppStateFocusManager(): FocusManager {
-  let appState: typeof import("react-native").AppState | null = null
+  let appState: AppStateLike | null = null
   let currentState: AppStateStatus | null = null
   let isFocused = true
 
