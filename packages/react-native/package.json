@@ -57,13 +57,21 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.71.0",
-    "use-stellar": "workspace:*"
+    "use-stellar": "workspace:*",
+    "@walletconnect/react-native-compat": "^2.0.0",
+    "@walletconnect/sign-client": "^2.0.0"
   },
   "peerDependenciesMeta": {
     "@react-native-async-storage/async-storage": {
       "optional": true
     },
     "@react-native-community/netinfo": {
+      "optional": true
+    },
+    "@walletconnect/react-native-compat": {
+      "optional": true
+    },
+    "@walletconnect/sign-client": {
       "optional": true
     }
   },
