@@ -2,9 +2,8 @@
 
 import { useCallback, useReducer, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer } from "../utils"
-import { normalizePayment, type PaymentRecord } from "../utils/normalizePayment"
 import { useQuery, paymentsKey } from "../cache"
+import { fetchPaymentsPage, normalizePayment } from "../queries/payments"
 import type {
   UsePaymentsOptions,
   UsePaymentsReturn,
@@ -13,6 +12,7 @@ import type {
 } from "../types"
 import type { Horizon } from "@stellar/stellar-sdk"
 import { toStellarError } from "../errors"
+import type { PaymentRecord } from "../queries/payments"
 
 interface PageData {
   payments: NormalizedPayment[]
@@ -141,42 +141,30 @@ export function usePayments({
   } = useQuery<PageData>({
     queryKey: queryKeyArr,
     queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
       const requestAddress = resolvedAddress
       if (!requestAddress) throw new Error("Address is required")
 
-      // Ask for one more than the caller wants: if Horizon returns it, another
-      // page exists. The naive `records.length >= limit` test reports
-      // `hasNext: true` whenever the total is an exact multiple of the page
-      // size, stranding the user on an empty final page.
-      let query = server
-        .payments()
-        .forAccount(requestAddress)
-        .limit(limit + 1)
-        .order(order)
-      if (cursor) query = query.cursor(cursor)
-
-      const res = await query.call()
-      const hasNext = res.records.length > limit
-      const records = hasNext ? res.records.slice(0, limit) : res.records
-      const normalized = records.map(rec => normalizePayment(rec, requestAddress))
+      const page = await fetchPaymentsPage(networkConfig, {
+        address: requestAddress,
+        limit,
+        order,
+        cursor,
+      })
 
       dispatch({
         type: "FETCH_SUCCESS",
         queryKey: currentQueryKey,
-        payments: normalized,
-        // Cursor callbacks are set from Horizon's response regardless of record
-        // count, so landing on an empty page never loses the way back.
-        next: () => res.next(),
-        prev: () => res.prev(),
-        hasNext,
-        hasPrev: !!cursor,
+        payments: page.records,
+        next: page.nextCursor,
+        prev: page.prevCursor,
+        hasNext: page.hasNext,
+        hasPrev: page.hasPrev,
       })
 
       return {
-        payments: normalized,
-        hasNext,
-        hasPrev: !!cursor,
+        payments: page.records,
+        hasNext: page.hasNext,
+        hasPrev: page.hasPrev,
       }
     },
     store: queryStore,

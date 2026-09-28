@@ -4,7 +4,8 @@ import {
   requestAccess,
   signTransaction,
 } from "@stellar/freighter-api"
-import { NETWORK_PASSPHRASES, freighterAdapter } from "./freighterAdapter"
+import { freighterAdapter } from "./freighterAdapter"
+import { NETWORK_PASSPHRASES } from "./constants"
 
 jest.mock("@stellar/freighter-api", () => ({
   getNetworkDetails: jest.fn(),
@@ -89,5 +90,35 @@ describe("freighterAdapter — missing optional peer", () => {
       code: "wallet_unavailable",
     })
     await expect(freshAdapter.connect("testnet")).rejects.toThrow("@stellar/freighter-api")
+  })
+})
+
+describe("freighterAdapter — native runtime", () => {
+  let originalNavigator: unknown
+
+  beforeEach(() => {
+    originalNavigator = global.navigator
+    Object.defineProperty(global, "navigator", {
+      value: { product: "ReactNative" },
+      writable: true,
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(global, "navigator", {
+      value: originalNavigator,
+      writable: true,
+    })
+  })
+
+  it("isAvailable returns false", async () => {
+    await expect(freighterAdapter.isAvailable()).resolves.toBe(false)
+  })
+
+  it("connect rejects with wallet_unavailable", async () => {
+    await expect(freighterAdapter.connect("testnet")).rejects.toMatchObject({
+      code: "wallet_unavailable",
+      message: expect.stringContaining("native app"),
+    })
   })
 })

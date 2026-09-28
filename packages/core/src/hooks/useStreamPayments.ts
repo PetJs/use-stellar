@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useStellarContext } from "../context/StellarProvider"
 import { getHorizonServer, isBrowser } from "../utils"
-import { normalizePayment, type PaymentRecord } from "../utils/normalizePayment"
+import { normalizePayment, type PaymentRecord } from "../queries/payments"
 import { computeBackoffDelay } from "../utils/retryWithBackoff"
 import { createStellarError } from "../errors"
 import type {

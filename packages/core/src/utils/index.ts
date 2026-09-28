@@ -8,6 +8,30 @@ export function isBrowser(): boolean {
   return typeof window !== "undefined"
 }
 
+/**
+ * Returns `true` when running inside React Native (Hermes/JSC), matching the
+ * detection already used by the wallet adapters (`registry.ts`,
+ * `freighterAdapter.ts`, `albedoAdapter.ts`).
+ *
+ * React Native has no `window`, so `isBrowser()` alone cannot tell "no DOM
+ * because this is a server" apart from "no DOM because this is a native app".
+ * Transaction signing needs the second distinction: it is unsupported during
+ * SSR (there is no client to hold a wallet session) but fully supported on
+ * native, where the WalletConnect adapter does the signing.
+ */
+export function isReactNative(): boolean {
+  return typeof navigator !== "undefined" && navigator.product === "ReactNative"
+}
+
+/**
+ * Returns `true` when transaction signing can run in the current environment:
+ * a browser, or React Native. `false` only during SSR/Node, where there is no
+ * client-side wallet session to sign with.
+ */
+export function canSignTransactions(): boolean {
+  return isBrowser() || isReactNative()
+}
+
 // ── Network helpers ────────────────────────────────────────────────────────
 /**
  * Returns the built-in config for a network.
