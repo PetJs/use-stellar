@@ -45,8 +45,8 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "jest --testPathIgnorePatterns=integration",
-    "test:watch": "jest --watch --testPathIgnorePatterns=integration",
+    "test": "jest --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
+    "test:watch": "jest --watch --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
     "typecheck": "tsc --noEmit",
     "dev": "tsup --watch",
     "lint": "eslint . --ext .ts,.tsx"

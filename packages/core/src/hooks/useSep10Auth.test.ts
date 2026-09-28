@@ -69,7 +69,6 @@ describe("useSep10Auth", () => {
       ok: true,
       json: async () => ({ transaction: "mock-challenge-xdr" }),
     })
-
     ;(WebAuth.readChallengeTx as jest.Mock).mockReturnValue({
       clientAccountID: mockWallet.address,
     })
@@ -118,7 +117,6 @@ describe("useSep10Auth", () => {
       ok: true,
       json: async () => ({ transaction: "tampered-challenge-xdr" }),
     })
-
     ;(WebAuth.readChallengeTx as jest.Mock).mockImplementation(() => {
       throw new Error("Invalid sequence number")
     })
@@ -138,7 +136,6 @@ describe("useSep10Auth", () => {
       ok: true,
       json: async () => ({ transaction: "mock-challenge-xdr" }),
     })
-
     ;(WebAuth.readChallengeTx as jest.Mock).mockReturnValue({
       clientAccountID: "GDIFFERENTACCOUNT...",
     })
@@ -164,7 +161,6 @@ describe("useSep10Auth", () => {
       useSep10Auth({ homeDomain: "testanchor.stellar.org", persist: true })
     )
     expect(result.current.token).toBe(mockJwt)
-
     ;(useStellarContext as jest.Mock).mockReturnValue({
       network: "testnet",
       networkConfig: mockNetworkConfig,
@@ -182,7 +178,6 @@ describe("useSep10Auth", () => {
       ok: true,
       json: async () => ({ transaction: "mock-challenge-xdr" }),
     })
-
     ;(WebAuth.readChallengeTx as jest.Mock).mockReturnValue({
       clientAccountID: mockWallet.address,
     })
