@@ -16,6 +16,10 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "react-native": {
+        "types": "./dist/index.react-native.d.ts",
+        "default": "./dist/index.react-native.js"
+      },
       "import": {
         "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
@@ -122,8 +126,5 @@
     "xlm",
     "usdc"
   ],
-  "license": "Apache-2.0",
-  "engines": {
-    "node": ">=20"
-  }
+  "license": "Apache-2.0"
 }

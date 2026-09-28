@@ -1,11 +1,7 @@
-import type { StellarNetwork, WalletNetworkId } from "../types"
-import { NETWORK_PASSPHRASES } from "../types"
+import type { StellarNetwork } from "../types"
 import type { WalletAdapter, WalletNetworkState, WalletNetworkDetails } from "./types"
 import { WalletAdapterError } from "./types"
-
-export const FREIGHTER_WALLET_TYPE = "freighter" as const
-
-export { NETWORK_PASSPHRASES }
+import { FREIGHTER_WALLET_TYPE, resolveNetworkFromPassphrase } from "./constants"
 
 /** How often (ms) the Freighter watcher polls the extension for changes. */
 const WATCH_INTERVAL = 3_000
@@ -74,24 +70,6 @@ async function loadFreighter(): Promise<FreighterApi> {
   return freighterPromise
 }
 
-/**
- * Maps a network passphrase onto a known network.
- *
- * Driven by the shared {@link NETWORK_PASSPHRASES} table rather than a ladder
- * of string literals, so adding a network is one entry in one place.
- *
- * An unrecognised passphrase is a private or standalone network — it is
- * reported as `"custom"`, never thrown on, so a wallet pointed at a local
- * quickstart node stays usable.
- */
-export function resolveNetworkFromPassphrase(passphrase: string): WalletNetworkId {
-  const match = (Object.keys(NETWORK_PASSPHRASES) as (keyof typeof NETWORK_PASSPHRASES)[]).find(
-    network => NETWORK_PASSPHRASES[network] === passphrase
-  )
-
-  return match ?? "custom"
-}
-
 async function getFreighterNetworkDetails(_network: StellarNetwork): Promise<WalletNetworkDetails> {
   const freighter = await loadFreighter()
   const details = await freighter.getNetworkDetails()
@@ -110,15 +88,24 @@ export const freighterAdapter: WalletAdapter = {
     type: FREIGHTER_WALLET_TYPE,
     name: "Freighter",
     supported: true,
+    platforms: ["web"],
   },
 
   async isAvailable() {
+    if (typeof navigator !== "undefined" && navigator.product === "ReactNative") return false
     const freighter = await loadFreighter()
     const connection = await freighter.isConnected()
     return Boolean(connection.isConnected && !connection.error)
   },
 
   async connect(network) {
+    if (typeof navigator !== "undefined" && navigator.product === "ReactNative") {
+      throw new WalletAdapterError(
+        "wallet_unavailable",
+        "Freighter cannot be used inside a native app."
+      )
+    }
+
     const freighter = await loadFreighter()
     const connection = await freighter.isConnected()
     if (connection.error || !connection.isConnected) {

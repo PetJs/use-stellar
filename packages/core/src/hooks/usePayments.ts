@@ -2,25 +2,17 @@
 
 import { useCallback, useReducer, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer } from "../utils"
 import { useQuery, paymentsKey } from "../cache"
+import { fetchPaymentsPage, normalizePayment } from "../queries/payments"
 import type {
   UsePaymentsOptions,
   UsePaymentsReturn,
   NormalizedPayment,
-  Asset,
   StellarError,
 } from "../types"
 import type { Horizon } from "@stellar/stellar-sdk"
 import { toStellarError } from "../errors"
-
-type PaymentRecord =
-  | Horizon.ServerApi.PaymentOperationRecord
-  | Horizon.ServerApi.CreateAccountOperationRecord
-  | Horizon.ServerApi.AccountMergeOperationRecord
-  | Horizon.ServerApi.PathPaymentOperationRecord
-  | Horizon.ServerApi.PathPaymentStrictSendOperationRecord
-  | Horizon.ServerApi.InvokeHostFunctionOperationRecord
+import type { PaymentRecord } from "../queries/payments"
 
 interface PageData {
   payments: NormalizedPayment[]
@@ -149,42 +141,30 @@ export function usePayments({
   } = useQuery<PageData>({
     queryKey: queryKeyArr,
     queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
       const requestAddress = resolvedAddress
       if (!requestAddress) throw new Error("Address is required")
 
-      // Ask for one more than the caller wants: if Horizon returns it, another
-      // page exists. The naive `records.length >= limit` test reports
-      // `hasNext: true` whenever the total is an exact multiple of the page
-      // size, stranding the user on an empty final page.
-      let query = server
-        .payments()
-        .forAccount(requestAddress)
-        .limit(limit + 1)
-        .order(order)
-      if (cursor) query = query.cursor(cursor)
-
-      const res = await query.call()
-      const hasNext = res.records.length > limit
-      const records = hasNext ? res.records.slice(0, limit) : res.records
-      const normalized = records.map(rec => normalizePayment(rec, requestAddress))
+      const page = await fetchPaymentsPage(networkConfig, {
+        address: requestAddress,
+        limit,
+        order,
+        cursor,
+      })
 
       dispatch({
         type: "FETCH_SUCCESS",
         queryKey: currentQueryKey,
-        payments: normalized,
-        // Cursor callbacks are set from Horizon's response regardless of record
-        // count, so landing on an empty page never loses the way back.
-        next: () => res.next(),
-        prev: () => res.prev(),
-        hasNext,
-        hasPrev: !!cursor,
+        payments: page.records,
+        next: page.nextCursor,
+        prev: page.prevCursor,
+        hasNext: page.hasNext,
+        hasPrev: page.hasPrev,
       })
 
       return {
-        payments: normalized,
-        hasNext,
-        hasPrev: !!cursor,
+        payments: page.records,
+        hasNext: page.hasNext,
+        hasPrev: page.hasPrev,
       }
     },
     store: queryStore,
@@ -298,65 +278,4 @@ export function usePayments({
     hasNext: pageState.hasNext ?? data?.hasNext ?? false,
     hasPrev: pageState.hasPrev ?? data?.hasPrev ?? false,
   }
-}
-
-// ── Normalize Payment Operations ───────────────────────────────────────────
-function normalizePayment(record: PaymentRecord, address: string): NormalizedPayment {
-  const type = record.type
-  const id = record.id
-  const txHash = record.transaction_hash
-  const createdAt = record.created_at
-
-  let from = ""
-  let to = ""
-  let amount = "0"
-  let asset: Asset = "XLM"
-  let direction: "incoming" | "outgoing" = "outgoing"
-
-  if (type === "payment") {
-    from = record.from
-    to = record.to
-    amount = record.amount
-    asset =
-      record.asset_type === "native"
-        ? "XLM"
-        : { code: record.asset_code || "", issuer: record.asset_issuer || "" }
-    direction = to === address ? "incoming" : "outgoing"
-  } else if (type === "create_account") {
-    from = record.funder
-    to = record.account
-    amount = record.starting_balance
-    asset = "XLM"
-    direction = to === address ? "incoming" : "outgoing"
-  } else if (type === "account_merge") {
-    from = record.source_account
-    to = record.into
-    amount = "0"
-    asset = "XLM"
-    direction = to === address ? "incoming" : "outgoing"
-  } else if (type === "path_payment_strict_receive" || type === "path_payment_strict_send") {
-    from = record.from
-    to = record.to
-    direction = to === address ? "incoming" : "outgoing"
-
-    if (direction === "incoming") {
-      amount = record.amount
-      asset =
-        record.asset_type === "native"
-          ? "XLM"
-          : { code: record.asset_code || "", issuer: record.asset_issuer || "" }
-    } else {
-      amount = record.source_amount || record.amount
-      const srcAssetType = record.source_asset_type || record.asset_type
-      asset =
-        srcAssetType === "native"
-          ? "XLM"
-          : {
-              code: record.source_asset_code || record.asset_code || "",
-              issuer: record.source_asset_issuer || record.asset_issuer || "",
-            }
-    }
-  }
-
-  return { id, txHash, type, from, to, amount, asset, direction, createdAt }
 }
