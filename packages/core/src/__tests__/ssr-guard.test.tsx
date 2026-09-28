@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import { renderHook, act } from "@testing-library/react-hooks"
+import { renderHook, act } from "@testing-library/react"
 
 // jest.mock is hoisted to the top of the file by Jest.
 jest.mock("../utils", () => {

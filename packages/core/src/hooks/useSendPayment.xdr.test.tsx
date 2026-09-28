@@ -67,10 +67,10 @@ jest.mock("@stellar/stellar-sdk", () => {
 
 // ── Other module mocks ────────────────────────────────────────────────────────
 // Mock ../utils so getHorizonServer returns our per-test server instance.
-// isBrowser is a jest.fn() so tests can override it with mockReturnValueOnce.
+// canSignTransactions is a jest.fn() so tests can override it with mockReturnValueOnce.
 jest.mock("../utils", () => ({
   ...jest.requireActual("../utils"),
-  isBrowser: jest.fn().mockReturnValue(true),
+  canSignTransactions: jest.fn().mockReturnValue(true),
   getHorizonServer: jest.fn(),
 }))
 
@@ -153,9 +153,9 @@ function setupMocks() {
 describe("useSendPayment — transaction building (real SDK)", () => {
   beforeEach(() => {
     // resetMocks:true clears jest.fn() implementations between tests.
-    // Restore isBrowser to true (browser context) for each test.
-    const utilsMock = jest.requireMock("../utils") as { isBrowser: jest.Mock }
-    utilsMock.isBrowser.mockReturnValue(true)
+    // Restore canSignTransactions to true (browser context) for each test.
+    const utilsMock = jest.requireMock("../utils") as { canSignTransactions: jest.Mock }
+    utilsMock.canSignTransactions.mockReturnValue(true)
 
     mockQueryStore = new QueryStore()
     mockWalletState = {
@@ -297,9 +297,9 @@ describe("useSendPayment — transaction building (real SDK)", () => {
     expect(server.submitTransaction).not.toHaveBeenCalled()
   })
 
-  it("throws VALIDATION_ERROR (on thrown object) when isBrowser() returns false", async () => {
-    const utilsMock = jest.requireMock("../utils") as { isBrowser: jest.Mock }
-    utilsMock.isBrowser.mockReturnValueOnce(false)
+  it("throws VALIDATION_ERROR (on thrown object) when canSignTransactions() returns false", async () => {
+    const utilsMock = jest.requireMock("../utils") as { canSignTransactions: jest.Mock }
+    utilsMock.canSignTransactions.mockReturnValueOnce(false)
     const { server } = setupMocks()
 
     const { result } = renderHook(() => useSendPayment(), { wrapper })
@@ -315,7 +315,7 @@ describe("useSendPayment — transaction building (real SDK)", () => {
 
     expect(caught).not.toBeNull()
     expect((caught as Error).message).toContain(
-      "Transaction signing is only available in the browser."
+      "Transaction signing is only available in the browser or React Native."
     )
     // Same early-exit pattern — result.current.error stays null.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

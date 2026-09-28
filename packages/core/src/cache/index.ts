@@ -3,6 +3,14 @@ export type { CacheEntry, CacheListener, QueryConfig } from "./types"
 export { DEFAULT_STALE_TIME, DEFAULT_GC_TIME } from "./types"
 export { useQuery } from "./useQuery"
 export type { UseQueryOptions, UseQueryResult } from "./useQuery"
+export { createQueryObserver } from "./observer"
+export type {
+  QueryObserver,
+  QueryObserverOptions,
+  QueryObserverSettableOptions,
+  QueryObserverSnapshot,
+  QueryObserverListener,
+} from "./observer"
 export {
   accountKey,
   transactionKey,

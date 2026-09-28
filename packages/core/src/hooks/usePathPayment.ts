@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { TransactionBuilder, Operation, Asset as StellarAsset, Memo } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer, isNativeAsset, isIssuedAsset, isBrowser } from "../utils"
+import { getHorizonServer, isNativeAsset, isIssuedAsset, canSignTransactions } from "../utils"
 import { asFeeSource, resolveFee } from "../utils/fees"
 import { getWalletAdapter } from "../wallets"
 import { createStellarError, toStellarError } from "../errors"
@@ -206,10 +206,10 @@ export function usePathPayment(): UsePathPaymentReturn {
         )
       }
 
-      if (!isBrowser()) {
+      if (!canSignTransactions()) {
         throw createStellarError(
           "VALIDATION_ERROR",
-          "Transaction signing is only available in the browser. " +
+          "Transaction signing is only available in the browser or React Native. " +
             'Move your component to a "use client" boundary in Next.js / Remix.'
         )
       }
