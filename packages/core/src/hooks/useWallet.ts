@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
-import { isBrowser } from "../utils"
-import type { AutoConnectOptions, StellarNetwork, WalletState, WalletType } from "../types"
+import type { StellarNetwork, WalletState, WalletType } from "../types"
 import { createStellarError, toStellarError } from "../errors"
 import { getWalletAdapter } from "../wallets"
 import { readWalletSession, writeWalletSession } from "../runtime/walletSession"
@@ -49,7 +48,7 @@ async function resolveWalletNetwork(
  * await connect("freighter")
  */
 export function useWallet(): UseWalletReturn {
-  const { wallet, setWallet, network, autoConnect } = useStellarContext()
+  const { wallet, setWallet, network, autoConnect, platform } = useStellarContext()
 
   // Tracks whether this hook is still mounted, so a late wallet response or a
   // watcher tick can never call setWallet on an unmounted component.
@@ -73,15 +72,25 @@ export function useWallet(): UseWalletReturn {
 
   const connect = useCallback(
     async (walletType: WalletType = "freighter") => {
-      if (!isBrowser()) {
-        safeSetWallet(prev => ({
-          ...prev,
-          error: createStellarError(
-            "VALIDATION_ERROR",
-            "Wallet connection is only available in the browser. " +
-              'Move your component to a "use client" boundary in Next.js / Remix.'
-          ),
-        }))
+      if (!platform.canConnectWallet) {
+        if (platform.isServer) {
+          safeSetWallet(prev => ({
+            ...prev,
+            error: createStellarError(
+              "VALIDATION_ERROR",
+              "Wallet connection is only available in the browser. " +
+                'Move your component to a "use client" boundary in Next.js / Remix.'
+            ),
+          }))
+        } else {
+          safeSetWallet(prev => ({
+            ...prev,
+            error: createStellarError(
+              "VALIDATION_ERROR",
+              `Wallet connection is not available on platform: ${platform.kind}`
+            ),
+          }))
+        }
         return
       }
 
@@ -109,7 +118,7 @@ export function useWallet(): UseWalletReturn {
         restoredWalletRef.current = null
 
         if (autoConnect.enabled) {
-          writeWalletSession(autoConnect.storage, {
+          void writeWalletSession(autoConnect.storage, {
             wallet: String(connection.wallet),
             ...(autoConnect.persistAddress ? { address: connection.address } : {}),
           })
@@ -122,7 +131,7 @@ export function useWallet(): UseWalletReturn {
         }))
       }
     },
-    [safeSetWallet, network, autoConnect.enabled, autoConnect.persistAddress, autoConnect.storage]
+    [safeSetWallet, network, autoConnect.enabled, autoConnect.persistAddress, autoConnect.storage, platform]
   )
 
   const disconnect = useCallback(() => {
@@ -136,7 +145,7 @@ export function useWallet(): UseWalletReturn {
     }
 
     restoredWalletRef.current = null
-    writeWalletSession(autoConnect.storage, null)
+    void writeWalletSession(autoConnect.storage, null)
 
     safeSetWallet({
       connected: false,
@@ -178,15 +187,15 @@ export function useWallet(): UseWalletReturn {
   // Runs once per mount. Reconnects only when the wallet says it can do so
   // without a prompt; otherwise restores intent only.
   useEffect(() => {
-    if (!autoConnect.enabled || !isBrowser()) return
-
-    const session = readWalletSession(autoConnect.storage)
-    if (!session) return
+    if (!autoConnect.enabled) return
 
     let cancelled = false
 
     void (async () => {
       try {
+        const session = await readWalletSession(autoConnect.storage)
+        if (!session || cancelled || !mountedRef.current) return
+
         const adapter = getWalletAdapter(session.wallet)
 
         const available = await adapter.isAvailable()
@@ -217,7 +226,7 @@ export function useWallet(): UseWalletReturn {
       } catch {
         // A wallet that cannot be restored is not an error the user caused —
         // they simply start from a disconnected UI.
-        writeWalletSession(autoConnect.storage, null)
+        void writeWalletSession(autoConnect.storage, null)
       }
     })()
 
@@ -234,7 +243,7 @@ export function useWallet(): UseWalletReturn {
   // Subscribes through the adapter contract. Adapters that cannot report
   // changes omit `subscribe`, so nothing here branches on wallet type.
   useEffect(() => {
-    if (!wallet.connected || !wallet.wallet || !isBrowser()) return
+    if (!wallet.connected || !wallet.wallet || !platform.hasDom) return
 
     let adapter: WalletAdapter
     try {
@@ -265,7 +274,7 @@ export function useWallet(): UseWalletReturn {
     return () => {
       unsubscribe()
     }
-  }, [wallet.connected, wallet.wallet, safeSetWallet])
+  }, [wallet.connected, wallet.wallet, safeSetWallet, platform.hasDom])
 
   const isNetworkMismatch = useMemo(() => {
     if (!wallet.connected || !wallet.walletNetwork) return false

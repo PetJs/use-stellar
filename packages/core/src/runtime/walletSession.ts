@@ -10,7 +10,7 @@
  * attacker-influenced input in XSS scenarios.
  */
 
-import type { AutoConnectOptions } from "../types"
+import type { AutoConnectOptions, SessionStorageAdapter } from "../types"
 import { hasWalletAdapter } from "../wallets"
 
 /** The persisted wallet session shape — nothing here is secret. */
@@ -19,19 +19,19 @@ export interface PersistedWalletSession {
   address?: string
 }
 
-/** Storage interface for reading/writing the persisted session. */
-export interface WalletSessionStorage {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-  removeItem(key: string): void
-}
+/**
+ * Storage interface for reading/writing the persisted session. Methods may be
+ * synchronous (`localStorage`) or asynchronous (React Native `AsyncStorage`).
+ */
+export type WalletSessionStorage = SessionStorageAdapter
 
 /** Session persistence key — exported for backwards compatibility. */
 export const WALLET_SESSION_STORAGE_KEY = "use-stellar:wallet-session"
 
 /**
  * Returns a storage adapter for the given kind, or `null` if storage is
- * unavailable (SSR, sandboxed iframe, or private mode).
+ * unavailable (SSR, sandboxed iframe, or private mode). A custom adapter is
+ * returned as-is, so non-browser runtimes can persist sessions too.
  *
  * Accessing storage itself may throw in sandboxed contexts, not just reading
  * from it, so the result is wrapped in a try/catch.
@@ -41,6 +41,8 @@ export const WALLET_SESSION_STORAGE_KEY = "use-stellar:wallet-session"
 export function getWalletSessionStorage(
   kind: AutoConnectOptions["storage"] = "local"
 ): WalletSessionStorage | null {
+  if (kind && typeof kind === "object") return kind
+
   // Safe to check globalThis.window in Node (it's undefined) and in browsers
   const hasWindow = typeof globalThis !== "undefined" && globalThis.window !== undefined
 
@@ -70,16 +72,16 @@ export function getWalletSessionStorage(
  * - No session is stored
  * - The stored value is malformed or invalid
  *
- * @param kind Where to read from: `"local"` for localStorage, `"session"` for sessionStorage.
+ * @param kind Where to read from: `"local"` for localStorage, `"session"` for sessionStorage, or a custom adapter.
  */
-export function readWalletSession(
+export async function readWalletSession(
   kind: AutoConnectOptions["storage"] = "local"
-): PersistedWalletSession | null {
+): Promise<PersistedWalletSession | null> {
   const storage = getWalletSessionStorage(kind)
   if (!storage) return null
 
   try {
-    const raw = storage.getItem(WALLET_SESSION_STORAGE_KEY)
+    const raw = await storage.getItem(WALLET_SESSION_STORAGE_KEY)
     if (!raw) return null
 
     const parsed: unknown = JSON.parse(raw)
@@ -106,21 +108,21 @@ export function readWalletSession(
  * ability to restore a session must never break the app. Exceptions are
  * silently caught.
  *
- * @param kind Where to write: `"local"` for localStorage, `"session"` for sessionStorage.
+ * @param kind Where to write: `"local"` for localStorage, `"session"` for sessionStorage, or a custom adapter.
  * @param session The session to persist, or `null` to clear the stored session.
  */
-export function writeWalletSession(
+export async function writeWalletSession(
   kind: AutoConnectOptions["storage"] = "local",
   session: PersistedWalletSession | null
-): void {
+): Promise<void> {
   const storage = getWalletSessionStorage(kind)
   if (!storage) return
 
   try {
     if (session) {
-      storage.setItem(WALLET_SESSION_STORAGE_KEY, JSON.stringify(session))
+      await storage.setItem(WALLET_SESSION_STORAGE_KEY, JSON.stringify(session))
     } else {
-      storage.removeItem(WALLET_SESSION_STORAGE_KEY)
+      await storage.removeItem(WALLET_SESSION_STORAGE_KEY)
     }
   } catch {
     // Quota exceeded, or storage disabled mid-session. Losing the ability to
@@ -131,8 +133,8 @@ export function writeWalletSession(
 /**
  * Clears the persisted wallet session.
  *
- * @param kind Where to clear: `"local"` for localStorage, `"session"` for sessionStorage.
+ * @param kind Where to clear: `"local"` for localStorage, `"session"` for sessionStorage, or a custom adapter.
  */
-export function clearWalletSession(kind: AutoConnectOptions["storage"] = "local"): void {
-  writeWalletSession(kind, null)
+export function clearWalletSession(kind: AutoConnectOptions["storage"] = "local"): Promise<void> {
+  return writeWalletSession(kind, null)
 }

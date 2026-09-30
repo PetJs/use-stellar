@@ -1,7 +1,7 @@
 {
   "name": "@use-stellar/react-native",
-  "version": "0.1.0",
-  "description": "React Native integration for use-stellar with AppState, NetInfo, and AsyncStorage",
+  "version": "0.1.5",
+  "description": "React Native hooks for the Stellar network - native platform integrations",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RaceeyXo/use-stellar.git",
@@ -30,6 +30,16 @@
         "default": "./dist/index.js"
       }
     },
+    "./polyfills": {
+      "import": {
+        "types": "./dist/polyfills.d.mts",
+        "default": "./dist/polyfills.mjs"
+      },
+      "require": {
+        "types": "./dist/polyfills.d.ts",
+        "default": "./dist/polyfills.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -45,21 +55,36 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "jest --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
-    "test:watch": "jest --watch --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
+    "test": "jest --testPathIgnorePatterns=integration",
+    "test:watch": "jest --watch --testPathIgnorePatterns=integration",
     "typecheck": "tsc --noEmit",
     "dev": "tsup --watch",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:package": "publint && attw --pack ."
   },
-  "dependencies": {
-    "use-stellar": "workspace:*"
-  },
+  "dependencies": {},
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-native": ">=0.71.0",
-    "use-stellar": "workspace:*"
+    "react-native": ">=0.68.0",
+    "use-stellar": "workspace:*",
+    "buffer": ">=6.0.0",
+    "react-native-get-random-values": ">=1.8.0",
+    "react-native-url-polyfill": ">=2.0.0",
+    "text-encoding": ">=0.7.0"
   },
   "peerDependenciesMeta": {
+    "buffer": {
+      "optional": true
+    },
+    "react-native-get-random-values": {
+      "optional": true
+    },
+    "react-native-url-polyfill": {
+      "optional": true
+    },
+    "text-encoding": {
+      "optional": true
+    },
     "@react-native-async-storage/async-storage": {
       "optional": true
     },
@@ -72,31 +97,37 @@
     "@react-native-community/netinfo": "^11.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/react-hooks": "^8.0.0",
     "@testing-library/react-native": "^12.4.0",
-    "@testing-library/jest-dom": "^6.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-native": "^0.73.0",
     "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "publint": "^0.3.9",
     "react": "^18.2.0",
     "react-native": "^0.73.0",
     "ts-jest": "^29.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "use-stellar": "workspace:*"
   },
   "keywords": [
     "stellar",
     "soroban",
+    "react",
     "react-native",
     "hooks",
     "blockchain",
     "web3",
     "crypto",
     "xlm",
-    "usdc"
+    "usdc",
+    "native"
   ],
   "license": "Apache-2.0"
 }

@@ -44,12 +44,17 @@ describe("walletSession utilities", () => {
     mockStorage = new MockStorage()
 
     // Register a test wallet adapter so validation passes
-    registerWalletAdapter("test-wallet", {
-      name: "Test Wallet",
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      isAvailable: jest.fn(),
-    })
+    registerWalletAdapter(
+      {
+        metadata: { type: "test-wallet", name: "Test Wallet", supported: true },
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        isAvailable: jest.fn(),
+        getNetworkDetails: jest.fn(),
+        signTransaction: jest.fn(),
+      },
+      { override: true }
+    )
   })
 
   describe("getWalletSessionStorage", () => {
@@ -62,8 +67,8 @@ describe("walletSession utilities", () => {
   })
 
   describe("readWalletSession", () => {
-    it("returns null when storage is unavailable", () => {
-      const session = readWalletSession("local")
+    it("returns null when storage is unavailable", async () => {
+      const session = await readWalletSession("local")
       // May vary by test environment, but should not throw
       expect(session === null || typeof session === "object").toBe(true)
     })
@@ -152,7 +157,7 @@ describe("walletSession utilities", () => {
 
     it("handles storage exceptions gracefully", () => {
       const failingStorage = {
-        setItem: jest.fn(() => {
+        setItem: jest.fn((_key: string, _value: string) => {
           throw new Error("Quota exceeded")
         }),
         getItem: jest.fn(),
@@ -184,6 +189,68 @@ describe("walletSession utilities", () => {
       expect(mockStorage.getItem(WALLET_SESSION_STORAGE_KEY)).toBeNull()
       mockStorage.removeItem(WALLET_SESSION_STORAGE_KEY)
       expect(mockStorage.getItem(WALLET_SESSION_STORAGE_KEY)).toBeNull()
+    })
+  })
+
+  describe("custom storage adapter", () => {
+    function createAsyncStorage() {
+      const store = new Map<string, string>()
+      return {
+        store,
+        getItem: jest.fn(async (key: string) => store.get(key) ?? null),
+        setItem: jest.fn(async (key: string, value: string) => {
+          store.set(key, value)
+        }),
+        removeItem: jest.fn(async (key: string) => {
+          store.delete(key)
+        }),
+      }
+    }
+
+    it("is returned as-is by getWalletSessionStorage", () => {
+      const storage = createAsyncStorage()
+      expect(getWalletSessionStorage(storage)).toBe(storage)
+    })
+
+    it("round-trips a session through an async adapter", async () => {
+      const storage = createAsyncStorage()
+      await writeWalletSession(storage, { wallet: "test-wallet", address: "GBTEST" })
+
+      expect(storage.setItem).toHaveBeenCalledWith(
+        WALLET_SESSION_STORAGE_KEY,
+        JSON.stringify({ wallet: "test-wallet", address: "GBTEST" })
+      )
+      await expect(readWalletSession(storage)).resolves.toEqual({
+        wallet: "test-wallet",
+        address: "GBTEST",
+      })
+    })
+
+    it("rejects sessions naming an unregistered wallet", async () => {
+      const storage = createAsyncStorage()
+      storage.store.set(WALLET_SESSION_STORAGE_KEY, JSON.stringify({ wallet: "unknown-wallet" }))
+      await expect(readWalletSession(storage)).resolves.toBeNull()
+    })
+
+    it("clears the stored session", async () => {
+      const storage = createAsyncStorage()
+      await writeWalletSession(storage, { wallet: "test-wallet" })
+      await clearWalletSession(storage)
+      expect(storage.store.has(WALLET_SESSION_STORAGE_KEY)).toBe(false)
+    })
+
+    it("swallows adapter failures", async () => {
+      const storage = {
+        getItem: jest.fn(async () => {
+          throw new Error("unavailable")
+        }),
+        setItem: jest.fn(async () => {
+          throw new Error("Quota exceeded")
+        }),
+        removeItem: jest.fn(),
+      }
+      await expect(writeWalletSession(storage, { wallet: "test-wallet" })).resolves.toBeUndefined()
+      await expect(readWalletSession(storage)).resolves.toBeNull()
     })
   })
 

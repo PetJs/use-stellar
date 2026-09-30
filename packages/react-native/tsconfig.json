@@ -8,14 +8,17 @@
     "strict": true,
     "esModuleInterop": true,
     "declaration": true,
-    "skipLibCheck": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "use-stellar": ["../core/src/index.ts"]
     }
   },
-  "include": ["src/index.ts", "src/StellarProvider.tsx", "src/platform/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",

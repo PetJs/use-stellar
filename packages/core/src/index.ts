@@ -49,6 +49,7 @@ export type {
   UseFederationLookupOptions,
   UseFederationLookupReturn,
 } from "./types"
+export { resolveNetworkConfig } from "./runtime/network"
 export { useSorobanContract, ANONYMOUS_SIMULATION_SOURCE } from "./hooks/useSorobanContract"
 export type { UseSorobanContractReturn } from "./hooks/useSorobanContract"
 export { usePaymentPaths } from "./hooks/usePaymentPaths"
@@ -152,6 +153,7 @@ export type {
   NetworkConfig,
   CustomNetworkConfig,
   AutoConnectOptions,
+  SessionStorageAdapter,
   WalletType,
   WalletNetworkId,
   WalletState,
