@@ -7,9 +7,10 @@ import type {
   StellarNetwork,
   WalletState,
 } from "../types"
-import { NETWORK_CONFIGS } from "../types"
+import { resolveNetworkConfig } from "../runtime/network"
 import { QueryStore } from "../cache"
 import type { QueryConfig } from "../cache"
+import { detectPlatform } from "../runtime"
 
 export type { AutoConnectOptions, QueryConfig }
 
@@ -45,86 +46,6 @@ export const WALLET_SESSION_STORAGE_KEY = "use-stellar:wallet-session"
  * Primarily consumed via the `useStellarContext` helper.
  */
 const StellarContext = createContext<StellarContextValue | null>(null)
-
-// ── Validation ─────────────────────────────────────────────────────────────
-/** Returns the built-in config for a network, or `undefined` for `"custom"`. */
-function getBuiltInConfig(network: StellarNetwork): NetworkConfig | undefined {
-  return network === "custom" ? undefined : NETWORK_CONFIGS[network]
-}
-
-/**
- * Validates a custom network config override and returns the merged
- * `NetworkConfig`, including the resolved `networkPassphrase`. Throws a
- * descriptive error if anything required is missing or obviously malformed, so
- * developers catch misconfiguration at startup.
- *
- * This is the single place a passphrase is resolved. Every hook that builds a
- * transaction reads `networkConfig.networkPassphrase` rather than deciding for
- * itself, because a passphrase chosen per-call-site is a passphrase that can
- * disagree with itself — and a signature bound to the wrong network is
- * rejected in a way nothing in the library would suspect.
- */
-function resolveNetworkConfig(
-  network: StellarNetwork,
-  override: CustomNetworkConfig | undefined
-): NetworkConfig {
-  const builtIn = getBuiltInConfig(network)
-
-  if (!override) {
-    if (!builtIn) {
-      throw new Error(
-        'use-stellar: network="custom" requires a networkConfig with ' +
-          "`horizonUrl`, `sorobanUrl`, and `networkPassphrase`. " +
-          'Example: { horizonUrl: "http://localhost:8000", ' +
-          'sorobanUrl: "http://localhost:8000/soroban/rpc", ' +
-          'networkPassphrase: "Standalone Network ; February 2017" }'
-      )
-    }
-
-    // No override — use the built-in SDF defaults.
-    return builtIn
-  }
-
-  const { horizonUrl, sorobanUrl, networkPassphrase } = override
-
-  if (!horizonUrl || typeof horizonUrl !== "string" || horizonUrl.trim() === "") {
-    throw new Error(
-      "use-stellar: Invalid networkConfig — `horizonUrl` is required when " +
-        "providing a custom networkConfig. " +
-        'Example: { horizonUrl: "https://horizon.my-node.com", sorobanUrl: "..." }'
-    )
-  }
-
-  if (!sorobanUrl || typeof sorobanUrl !== "string" || sorobanUrl.trim() === "") {
-    throw new Error(
-      "use-stellar: Invalid networkConfig — `sorobanUrl` is required when " +
-        "providing a custom networkConfig. " +
-        'Example: { horizonUrl: "...", sorobanUrl: "https://rpc.my-node.com" }'
-    )
-  }
-
-  const hasPassphrase = typeof networkPassphrase === "string" && networkPassphrase.trim() !== ""
-
-  // Never default a passphrase for a network we ship no defaults for. Signing
-  // with a silently-chosen passphrase must not be reachable.
-  if (!hasPassphrase && !builtIn) {
-    throw new Error(
-      'use-stellar: Invalid networkConfig — `networkPassphrase` is required when network="custom". ' +
-        "There is no default passphrase for a network this library ships no configuration for, and " +
-        "guessing one would sign transactions that the target network rejects. " +
-        'Example: { networkPassphrase: "Standalone Network ; February 2017" }'
-    )
-  }
-
-  return {
-    network,
-    horizonUrl: horizonUrl.trim(),
-    sorobanUrl: sorobanUrl.trim(),
-    networkPassphrase: hasPassphrase
-      ? (networkPassphrase as string).trim()
-      : (builtIn as NetworkConfig).networkPassphrase,
-  }
-}
 
 // ── Provider ───────────────────────────────────────────────────────────────
 /**
@@ -318,6 +239,7 @@ export function StellarProvider({
       setWallet,
       autoConnect: resolvedAutoConnect,
       queryStore,
+      platform: detectPlatform(),
     }),
     [network, resolvedNetworkConfig, wallet, resolvedAutoConnect, queryStore]
   )

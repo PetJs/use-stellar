@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react"
 import type { StellarError } from "../errors"
 import type { QueryStore } from "../cache"
+import type { PlatformCapabilities } from "../runtime"
 import type { xdr } from "@stellar/stellar-sdk"
 
 export type { QueryConfig } from "../cache"
@@ -555,7 +556,14 @@ export interface AutoConnectOptions {
    */
   persistAddress?: boolean
   /** Where to persist. Defaults to `"local"` (`localStorage`). */
-  storage?: "local" | "session"
+  storage?: "local" | "session" | SessionStorageAdapter
+}
+
+/** Storage-compatible adapter for persisting non-secret wallet session metadata. */
+export interface SessionStorageAdapter {
+  getItem(key: string): string | null | Promise<string | null>
+  setItem(key: string, value: string): void | Promise<void>
+  removeItem(key: string): void | Promise<void>
 }
 
 /**
@@ -570,6 +578,8 @@ export interface StellarContextValue {
   autoConnect: Required<AutoConnectOptions>
   /** Shared query/cache store. All fetching hooks read and write through this. */
   queryStore: QueryStore
+  /** Platform capabilities and environment detection. */
+  platform: PlatformCapabilities
 }
 
 export interface UsePaymentsOptions {
