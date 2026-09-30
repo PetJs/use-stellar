@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useStellarContext } from "../context/StellarProvider"
 import type { StellarNetwork, WalletState, WalletType } from "../types"
 import { createStellarError, toStellarError } from "../errors"
@@ -53,7 +53,7 @@ export function useWallet(): UseWalletReturn {
   // Tracks whether this hook is still mounted, so a late wallet response or a
   // watcher tick can never call setWallet on an unmounted component.
   const mountedRef = useRef(true)
-  const restoredWalletRef = useRef<WalletType | null>(null)
+  const [restoredWallet, setRestoredWallet] = useState<WalletType | null>(null)
 
   const safeSetWallet = useCallback(
     (update: React.SetStateAction<WalletState>) => {
@@ -115,7 +115,7 @@ export function useWallet(): UseWalletReturn {
           ...walletNetwork,
         })
 
-        restoredWalletRef.current = null
+        setRestoredWallet(null)
 
         if (autoConnect.enabled) {
           void writeWalletSession(autoConnect.storage, {
@@ -144,7 +144,7 @@ export function useWallet(): UseWalletReturn {
       }
     }
 
-    restoredWalletRef.current = null
+    setRestoredWallet(null)
     void writeWalletSession(autoConnect.storage, null)
 
     safeSetWallet({
@@ -204,7 +204,7 @@ export function useWallet(): UseWalletReturn {
         if (!available) {
           // The extension is gone. Keep the stored intent so the user can
           // reinstall and pick up where they left off.
-          restoredWalletRef.current = session.wallet
+          setRestoredWallet(session.wallet)
           return
         }
 
@@ -212,7 +212,7 @@ export function useWallet(): UseWalletReturn {
         if (cancelled || !mountedRef.current) return
 
         if (!silent) {
-          restoredWalletRef.current = session.wallet
+          setRestoredWallet(session.wallet)
           safeSetWallet(prev => ({
             ...prev,
             wallet: session.wallet,
@@ -287,6 +287,6 @@ export function useWallet(): UseWalletReturn {
     disconnect,
     refreshWalletNetwork,
     isNetworkMismatch,
-    restoredWallet: restoredWalletRef.current,
+    restoredWallet,
   }
 }
