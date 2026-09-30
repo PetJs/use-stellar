@@ -1,22 +1,12 @@
 import { useEffect, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer } from "../utils"
-import { createStellarError, toStellarError } from "../errors"
-import { useQuery, assetKey } from "../cache"
+import { toStellarError } from "../errors"
+import { useQuery } from "../cache"
+import { fetchAsset, assetKey } from "../queries/asset"
+import type { AssetInfo } from "../queries/asset"
 import type { StellarError } from "../types"
 
-export interface AssetInfo {
-  code: string
-  issuer: string
-  supply: string
-  homeDomain?: string
-  numAccounts: number
-  flags: {
-    authRequired: boolean
-    authRevocable: boolean
-    authImmutable: boolean
-  }
-}
+export type { AssetInfo }
 
 export interface UseAssetOptions {
   code: string
@@ -78,29 +68,7 @@ export function useAsset({
     refetch,
   } = useQuery<AssetInfo>({
     queryKey,
-    queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
-      const res = await server.assets().forCode(code).forIssuer(issuer).call()
-
-      const raw = res.records[0]
-      if (!raw) {
-        throw createStellarError("ASSET_NOT_FOUND", `Asset ${code}:${issuer} not found.`)
-      }
-      const assetRecord = raw as typeof raw & { home_domain?: string }
-
-      return {
-        code: raw.asset_code,
-        issuer: raw.asset_issuer,
-        supply: raw.amount,
-        numAccounts: raw.num_accounts,
-        homeDomain: assetRecord.home_domain,
-        flags: {
-          authRequired: raw.flags.auth_required,
-          authRevocable: raw.flags.auth_revocable,
-          authImmutable: raw.flags.auth_immutable,
-        },
-      }
-    },
+    queryFn: async () => fetchAsset(networkConfig, { code, issuer }),
     store: queryStore,
     staleTime,
     enabled: autoFetch,

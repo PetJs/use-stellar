@@ -7,6 +7,23 @@ export {
 } from "./context/StellarProvider"
 export type { StellarProviderProps, QueryConfig } from "./context/StellarProvider"
 
+// ── Runtime (framework-neutral) ────────────────────────────────────────────
+export { createStellarRuntime } from "./runtime/StellarRuntime"
+export type {
+  StellarRuntime,
+  StellarRuntimeOptions,
+  StellarRuntimeSnapshot,
+  StellarRuntimeListener,
+} from "./runtime/StellarRuntime"
+export {
+  readWalletSession,
+  writeWalletSession,
+  clearWalletSession,
+  getWalletSessionStorage,
+  WALLET_SESSION_STORAGE_KEY as WALLET_SESSION_KEY,
+} from "./runtime/walletSession"
+export type { PersistedWalletSession, WalletSessionStorage } from "./runtime/walletSession"
+
 // ── Hooks ──────────────────────────────────────────────────────────────────
 export * from "./hooks/useSorobanWrite"
 export type { SorobanInvokeOptions, UseSorobanWriteReturn } from "./types"

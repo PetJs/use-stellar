@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from "react"
-import { useStellarContext, WALLET_SESSION_STORAGE_KEY } from "../context/StellarProvider"
+import { useStellarContext } from "../context/StellarProvider"
 import { isBrowser } from "../utils"
 import type { AutoConnectOptions, StellarNetwork, WalletState, WalletType } from "../types"
 import { createStellarError, toStellarError } from "../errors"
-import { getWalletAdapter, hasWalletAdapter } from "../wallets"
+import { getWalletAdapter } from "../wallets"
+import { readWalletSession, writeWalletSession } from "../runtime/walletSession"
 import type { WalletAdapter, WalletChange } from "../wallets"
 
 export interface UseWalletReturn extends WalletState {
@@ -17,70 +18,6 @@ export interface UseWalletReturn extends WalletState {
    * Pre-select it in your connect UI and let the user click.
    */
   restoredWallet: WalletType | null
-}
-
-/** The shape persisted to storage. Nothing here is secret. */
-interface PersistedSession {
-  wallet: string
-  address?: string
-}
-
-function getStorage(kind: AutoConnectOptions["storage"]): Storage | null {
-  if (!isBrowser()) return null
-
-  try {
-    // Accessing `localStorage` itself throws in sandboxed iframes and some
-    // private-mode contexts — not just reading from it.
-    return kind === "session" ? window.sessionStorage : window.localStorage
-  } catch {
-    return null
-  }
-}
-
-/**
- * Reads the persisted session, discarding anything that is not a well-formed
- * record naming a wallet that is actually registered.
- *
- * A stored value is attacker-influenced input in an XSS scenario, so it is
- * validated before it ever reaches the registry.
- */
-function readSession(kind: AutoConnectOptions["storage"]): PersistedSession | null {
-  const storage = getStorage(kind)
-  if (!storage) return null
-
-  try {
-    const raw = storage.getItem(WALLET_SESSION_STORAGE_KEY)
-    if (!raw) return null
-
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== "object" || parsed === null) return null
-
-    const { wallet, address } = parsed as Record<string, unknown>
-    if (typeof wallet !== "string" || !hasWalletAdapter(wallet)) return null
-
-    return {
-      wallet,
-      address: typeof address === "string" ? address : undefined,
-    }
-  } catch {
-    return null
-  }
-}
-
-function writeSession(kind: AutoConnectOptions["storage"], session: PersistedSession | null): void {
-  const storage = getStorage(kind)
-  if (!storage) return
-
-  try {
-    if (session) {
-      storage.setItem(WALLET_SESSION_STORAGE_KEY, JSON.stringify(session))
-    } else {
-      storage.removeItem(WALLET_SESSION_STORAGE_KEY)
-    }
-  } catch {
-    // Quota exceeded, or storage disabled mid-session. Losing the ability to
-    // restore a session is never a reason to break the app.
-  }
 }
 
 async function resolveWalletNetwork(
@@ -172,7 +109,7 @@ export function useWallet(): UseWalletReturn {
         restoredWalletRef.current = null
 
         if (autoConnect.enabled) {
-          writeSession(autoConnect.storage, {
+          writeWalletSession(autoConnect.storage, {
             wallet: String(connection.wallet),
             ...(autoConnect.persistAddress ? { address: connection.address } : {}),
           })
@@ -199,7 +136,7 @@ export function useWallet(): UseWalletReturn {
     }
 
     restoredWalletRef.current = null
-    writeSession(autoConnect.storage, null)
+    writeWalletSession(autoConnect.storage, null)
 
     safeSetWallet({
       connected: false,
@@ -243,7 +180,7 @@ export function useWallet(): UseWalletReturn {
   useEffect(() => {
     if (!autoConnect.enabled || !isBrowser()) return
 
-    const session = readSession(autoConnect.storage)
+    const session = readWalletSession(autoConnect.storage)
     if (!session) return
 
     let cancelled = false
@@ -280,7 +217,7 @@ export function useWallet(): UseWalletReturn {
       } catch {
         // A wallet that cannot be restored is not an error the user caused —
         // they simply start from a disconnected UI.
-        writeSession(autoConnect.storage, null)
+        writeWalletSession(autoConnect.storage, null)
       }
     })()
 
