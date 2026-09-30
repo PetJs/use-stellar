@@ -136,7 +136,6 @@
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "use-stellar": "workspace:*"
-    "typescript": "^5.4.0"
   },
   "keywords": [
     "stellar",
@@ -150,7 +149,6 @@
     "xlm",
     "usdc",
     "native"
-    "usdc"
   ],
   "license": "Apache-2.0"
 }

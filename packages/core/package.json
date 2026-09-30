@@ -38,8 +38,6 @@
         "types": "./dist/core.d.ts",
         "default": "./dist/core.js"
       }
-      "types": "./src/core.ts",
-      "default": "./src/core.ts"
     },
     "./package.json": "./package.json"
   },
