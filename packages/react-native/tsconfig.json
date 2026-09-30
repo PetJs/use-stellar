@@ -12,18 +12,13 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "skipLibCheck": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
     "skipLibCheck": true,
-    "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
       "use-stellar": ["../core/src/index.ts"]
     }
   },
-  "include": ["src/index.ts", "src/StellarProvider.tsx", "src/platform/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",

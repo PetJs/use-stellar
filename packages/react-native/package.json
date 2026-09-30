@@ -2,8 +2,6 @@
   "name": "@use-stellar/react-native",
   "version": "0.1.5",
   "description": "React Native hooks for the Stellar network - native platform integrations",
-  "version": "0.1.0",
-  "description": "React Native integration for use-stellar with AppState, NetInfo, and AsyncStorage",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RaceeyXo/use-stellar.git",
@@ -61,12 +59,14 @@
     "test:watch": "jest --watch --testPathIgnorePatterns=integration",
     "typecheck": "tsc --noEmit",
     "dev": "tsup --watch",
+    "lint": "eslint . --ext .ts,.tsx",
     "lint:package": "publint && attw --pack ."
   },
+  "dependencies": {},
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.68.0",
-    "use-stellar": ">=0.1.5",
+    "use-stellar": "workspace:*",
     "buffer": ">=6.0.0",
     "react-native-get-random-values": ">=1.8.0",
     "react-native-url-polyfill": ">=2.0.0",
@@ -84,29 +84,7 @@
     },
     "text-encoding": {
       "optional": true
-    }
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "@arethetypeswrong/cli": "^0.18.5",
-    "@testing-library/jest-dom": "^6.0.0",
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/react-hooks": "^8.0.0",
-    "test": "jest --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
-    "test:watch": "jest --watch --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
-    "typecheck": "tsc --noEmit",
-    "dev": "tsup --watch",
-    "lint": "eslint . --ext .ts,.tsx"
-  },
-  "dependencies": {
-    "use-stellar": "workspace:*"
-  },
-  "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-native": ">=0.71.0",
-    "use-stellar": "workspace:*"
-  },
-  "peerDependenciesMeta": {
+    },
     "@react-native-async-storage/async-storage": {
       "optional": true
     },
@@ -119,10 +97,11 @@
     "@react-native-community/netinfo": "^11.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/react-hooks": "^8.0.0",
     "@testing-library/react-native": "^12.4.0",
-    "@testing-library/jest-dom": "^6.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
@@ -136,7 +115,6 @@
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "use-stellar": "workspace:*"
-    "typescript": "^5.4.0"
   },
   "keywords": [
     "stellar",
@@ -150,7 +128,6 @@
     "xlm",
     "usdc",
     "native"
-    "usdc"
   ],
   "license": "Apache-2.0"
 }
