@@ -8,8 +8,11 @@
     "strict": true,
     "esModuleInterop": true,
     "declaration": true,
-    "skipLibCheck": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "use-stellar": ["../core/src/index.ts"]

@@ -1,7 +1,7 @@
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer } from "../utils"
 import { toStellarError } from "../errors"
-import { useQuery, claimableBalanceKey } from "../cache"
+import { useQuery } from "../cache"
+import { fetchClaimableBalance, claimableBalanceKey } from "../queries/claimableBalance"
 import type { ClaimableBalance, StellarError } from "../types"
 
 export interface UseClaimableBalanceOptions {
@@ -62,29 +62,7 @@ export function useClaimableBalance({
     refetch,
   } = useQuery<ClaimableBalance[]>({
     queryKey,
-    queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
-      try {
-        const result = await server.claimableBalances().claimant(resolvedAddress!).call()
-        return result.records.map(record => ({
-          id: record.id,
-          asset: record.asset,
-          amount: record.amount,
-          claimants: record.claimants.map(c => ({
-            destination: c.destination,
-            predicate: c.predicate as object,
-          })),
-          sponsor: record.sponsor,
-        }))
-      } catch (err) {
-        const stellarError = toStellarError(err)
-        // A 404 means the account has no claimable balances — treat as empty
-        if (stellarError?.code === "ACCOUNT_NOT_FOUND") {
-          return []
-        }
-        throw stellarError ?? err
-      }
-    },
+    queryFn: async () => fetchClaimableBalance(networkConfig, { address: resolvedAddress! }),
     store: queryStore,
     staleTime,
     enabled: Boolean(resolvedAddress),
