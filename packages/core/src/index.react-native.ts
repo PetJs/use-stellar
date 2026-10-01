@@ -114,6 +114,7 @@ export type {
   NetworkConfig,
   CustomNetworkConfig,
   AutoConnectOptions,
+  SessionStorageAdapter,
   WalletType,
   WalletNetworkId,
   WalletState,

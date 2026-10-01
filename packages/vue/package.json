@@ -1,11 +1,11 @@
 {
-  "name": "use-stellar",
+  "name": "@use-stellar/vue",
   "version": "0.1.5",
-  "description": "React hooks for the Stellar network - the wagmi of Stellar",
+  "description": "Vue 3 composables for the Stellar network - framework-agnostic runtime adapter",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/israelolrunfemi/use-stellar.git",
-    "directory": "packages/core"
+    "directory": "packages/vue"
   },
   "homepage": "https://github.com/israelolrunfemi/use-stellar#readme",
   "bugs": {
@@ -16,10 +16,6 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "react-native": {
-        "types": "./dist/index.react-native.d.ts",
-        "default": "./dist/index.react-native.js"
-      },
       "import": {
         "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
@@ -38,8 +34,6 @@
         "types": "./dist/core.d.ts",
         "default": "./dist/core.js"
       }
-      "types": "./src/core.ts",
-      "default": "./src/core.ts"
     },
     "./package.json": "./package.json"
   },
@@ -58,7 +52,6 @@
     "build": "tsup",
     "test": "jest --testPathIgnorePatterns=integration",
     "test:watch": "jest --watch --testPathIgnorePatterns=integration",
-    "test:integration": "jest --config jest.integration.config.js",
     "test:package": "node scripts/smoke-test.js",
     "lint:package": "publint && attw --pack .",
     "typecheck": "tsc --noEmit",
@@ -67,73 +60,50 @@
     "size:why": "size-limit --why"
   },
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "@albedo-link/intent": "^0.13.0",
-    "@stellar/freighter-api": "^6.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@albedo-link/intent": {
-      "optional": true
-    },
-    "@stellar/freighter-api": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@stellar/stellar-sdk": "^12.0.0"
+    "vue": ">=3.3.0",
+    "use-stellar": "workspace:*"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@albedo-link/intent": "^0.13.0",
-    "@stellar/freighter-api": "6.0.1",
     "@size-limit/esbuild": "12.1.0",
     "@size-limit/esbuild-why": "12.1.0",
     "@size-limit/preset-small-lib": "^12.1.0",
-    "@testing-library/jest-dom": "^6.0.0",
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/react-hooks": "^8.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
+    "@vue/test-utils": "^2.4.0",
     "jest": "^29.0.0",
     "jest-environment-jsdom": "^29.0.0",
     "publint": "^0.3.9",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "size-limit": "^12.1.0",
     "ts-jest": "^29.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "use-stellar": "workspace:*",
+    "vue": "^3.3.0"
   },
   "size-limit": [
     {
       "name": "CommonJS bundle",
       "path": "dist/index.js",
-      "limit": "25 kB",
-      "ignore": [
-        "@stellar/stellar-sdk"
-      ]
+      "limit": "15 kB"
     },
     {
       "name": "ES module bundle",
       "path": "dist/index.mjs",
-      "limit": "25 kB",
-      "ignore": [
-        "@stellar/stellar-sdk"
-      ]
+      "limit": "15 kB"
     }
   ],
   "keywords": [
     "stellar",
     "soroban",
-    "react",
-    "hooks",
+    "vue",
+    "composables",
     "blockchain",
     "web3",
     "crypto",
     "xlm",
     "usdc"
   ],
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "author": "Israel Olufemi"
 }

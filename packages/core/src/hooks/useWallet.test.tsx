@@ -1,11 +1,13 @@
 import React, { type ReactNode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { getNetworkDetails, isAllowed, isConnected, requestAccess } from "@stellar/freighter-api"
-import { StellarProvider, WALLET_SESSION_STORAGE_KEY } from "../context/StellarProvider"
+import { StellarProvider } from "../context/StellarProvider"
 import { NETWORK_PASSPHRASES, registerWalletAdapter } from "../wallets"
 import { getNetworkPassphrase } from "../types"
 import { useWallet } from "./useWallet"
 import * as freighterApi from "@stellar/freighter-api"
+
+const WALLET_SESSION_STORAGE_KEY = "stellar-wallet-session"
 
 /** Testnet-only address used throughout this file. */
 const TEST_ADDRESS = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
@@ -453,7 +455,7 @@ function autoConnectWrapper(
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <StellarProvider network="testnet" autoConnect={autoConnect}>
+      <StellarProvider network="testnet">
         {children}
       </StellarProvider>
     )
