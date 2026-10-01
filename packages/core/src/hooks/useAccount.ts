@@ -1,7 +1,7 @@
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer, parseHorizonBalance } from "../utils"
 import { toStellarError } from "../errors"
-import { useQuery, accountKey } from "../cache"
+import { useQuery } from "../cache"
+import { fetchAccount, accountKey } from "../queries/account"
 import type { AccountInfo, StellarError } from "../types"
 
 export interface UseAccountOptions {
@@ -66,27 +66,7 @@ export function useAccount({
     refetch,
   } = useQuery<AccountInfo>({
     queryKey,
-    queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
-      const raw = await server.loadAccount(resolvedAddress!)
-
-      return {
-        address: raw.id,
-        sequence: raw.sequenceNumber(),
-        balances: raw.balances.map(parseHorizonBalance),
-        subentryCount: raw.subentry_count,
-        thresholds: {
-          lowThreshold: raw.thresholds.low_threshold,
-          medThreshold: raw.thresholds.med_threshold,
-          highThreshold: raw.thresholds.high_threshold,
-        },
-        signers: raw.signers.map((s: { key: string; weight: number; type: string }) => ({
-          key: s.key,
-          weight: s.weight,
-          type: s.type,
-        })),
-      } satisfies AccountInfo
-    },
+    queryFn: async () => fetchAccount(networkConfig, { address: resolvedAddress! }),
     store: queryStore,
     staleTime,
     enabled: Boolean(resolvedAddress),

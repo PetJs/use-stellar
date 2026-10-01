@@ -1,5 +1,5 @@
 import { albedoAdapter } from "./albedoAdapter"
-import { NETWORK_PASSPHRASES } from "./freighterAdapter"
+import { NETWORK_PASSPHRASES } from "./constants"
 
 jest.mock("@albedo-link/intent", () => ({
   publicKey: jest.fn(),

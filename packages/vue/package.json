@@ -1,0 +1,109 @@
+{
+  "name": "@use-stellar/vue",
+  "version": "0.1.5",
+  "description": "Vue 3 composables for the Stellar network - framework-agnostic runtime adapter",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/israelolrunfemi/use-stellar.git",
+    "directory": "packages/vue"
+  },
+  "homepage": "https://github.com/israelolrunfemi/use-stellar#readme",
+  "bugs": {
+    "url": "https://github.com/israelolrunfemi/use-stellar/issues"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./core": {
+      "import": {
+        "types": "./dist/core.d.mts",
+        "default": "./dist/core.mjs"
+      },
+      "require": {
+        "types": "./dist/core.d.ts",
+        "default": "./dist/core.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "jest --testPathIgnorePatterns=integration",
+    "test:watch": "jest --watch --testPathIgnorePatterns=integration",
+    "test:package": "node scripts/smoke-test.js",
+    "lint:package": "publint && attw --pack .",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsup --watch",
+    "size": "size-limit",
+    "size:why": "size-limit --why"
+  },
+  "peerDependencies": {
+    "vue": ">=3.3.0",
+    "use-stellar": "workspace:*"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@size-limit/esbuild": "12.1.0",
+    "@size-limit/esbuild-why": "12.1.0",
+    "@size-limit/preset-small-lib": "^12.1.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "publint": "^0.3.9",
+    "size-limit": "^12.1.0",
+    "ts-jest": "^29.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "use-stellar": "workspace:*",
+    "vue": "^3.3.0"
+  },
+  "size-limit": [
+    {
+      "name": "CommonJS bundle",
+      "path": "dist/index.js",
+      "limit": "15 kB"
+    },
+    {
+      "name": "ES module bundle",
+      "path": "dist/index.mjs",
+      "limit": "15 kB"
+    }
+  ],
+  "keywords": [
+    "stellar",
+    "soroban",
+    "vue",
+    "composables",
+    "blockchain",
+    "web3",
+    "crypto",
+    "xlm",
+    "usdc"
+  ],
+  "license": "Apache-2.0",
+  "author": "Israel Olufemi"
+}

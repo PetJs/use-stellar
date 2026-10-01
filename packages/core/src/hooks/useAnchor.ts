@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { StellarToml } from "@stellar/stellar-sdk"
 import { useStellarContext } from "../context/StellarProvider"
-import { isBrowser, isValidStellarAddress } from "../utils"
-import { createStellarError, toStellarError } from "../errors"
-import type { UseAnchorOptions, UseAnchorReturn, AnchorInfo, AnchorCurrency } from "../types"
-
-/**
- * Timeout for stellar.toml fetch (10 seconds).
- * Note: The Stellar SDK's resolver handles size limits internally per SEP-1 (100 KB max).
- */
-const TOML_FETCH_TIMEOUT = 10_000
+import { isBrowser } from "../utils"
+import { toStellarError } from "../errors"
+import { fetchAnchorInfo } from "../queries/anchor"
+import type { UseAnchorOptions, UseAnchorReturn, AnchorInfo } from "../types"
 
 /**
  * Resolves an anchor's stellar.toml (SEP-1) and returns structured information
@@ -57,16 +51,7 @@ export function useAnchor({
       return
     }
 
-    if (!homeDomain) {
-      setAnchor(null)
-      setError(null)
-      setLoading(false)
-      return
-    }
-
-    const normalizedDomain = homeDomain.trim().toLowerCase()
-
-    if (!normalizedDomain) {
+    if (!homeDomain || !homeDomain.trim()) {
       setAnchor(null)
       setError(null)
       setLoading(false)
@@ -86,126 +71,9 @@ export function useAnchor({
     setError(null)
 
     try {
-      // Enforce HTTPS on mainnet
-      const allowHttp =
-        network === "custom" ||
-        network === "testnet" ||
-        network === "futurenet" ||
-        normalizedDomain.includes("localhost") ||
-        normalizedDomain.startsWith("127.") ||
-        normalizedDomain.startsWith("192.168.")
-
-      if (!allowHttp && network === "mainnet") {
-        // Double-check that we're not allowing HTTP on mainnet
-        const testUrl = normalizedDomain.startsWith("http://")
-        if (testUrl) {
-          throw createStellarError(
-            "VALIDATION_ERROR",
-            "HTTP is not allowed for anchors on mainnet. Use HTTPS to prevent man-in-the-middle attacks."
-          )
-        }
-      }
-
-      // Fetch with timeout and size limit
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        const timeoutId = setTimeout(() => {
-          controller.abort()
-          reject(
-            createStellarError(
-              "NETWORK_ERROR",
-              `stellar.toml fetch timed out after ${TOML_FETCH_TIMEOUT}ms`
-            )
-          )
-        }, TOML_FETCH_TIMEOUT)
-
-        // Clean up timeout if request completes
-        controller.signal.addEventListener("abort", () => clearTimeout(timeoutId))
-      })
-
-      const resolvePromise = StellarToml.Resolver.resolve(normalizedDomain, {
-        allowHttp,
-        timeout: TOML_FETCH_TIMEOUT,
-      })
-
-      const toml = await Promise.race([resolvePromise, timeoutPromise])
+      const anchorInfo = await fetchAnchorInfo(homeDomain, network, { signal: controller.signal })
 
       if (fetchId !== requestRef.current) return
-
-      // Validate and normalize the response
-      const signingKey =
-        typeof toml.SIGNING_KEY === "string" && toml.SIGNING_KEY.trim()
-          ? toml.SIGNING_KEY.trim()
-          : null
-
-      // Validate signing key is a real Stellar public key
-      if (signingKey && !isValidStellarAddress(signingKey)) {
-        throw createStellarError(
-          "VALIDATION_ERROR",
-          `Invalid signing key in stellar.toml: "${signingKey}" is not a valid Stellar public key (must start with G and be 56 characters).`
-        )
-      }
-
-      // Extract endpoints (all optional)
-      const webAuthEndpoint =
-        typeof toml.WEB_AUTH_ENDPOINT === "string" && toml.WEB_AUTH_ENDPOINT.trim()
-          ? toml.WEB_AUTH_ENDPOINT.trim()
-          : null
-
-      const transferServer =
-        typeof toml.TRANSFER_SERVER === "string" && toml.TRANSFER_SERVER.trim()
-          ? toml.TRANSFER_SERVER.trim()
-          : null
-
-      const transferServerSep24 =
-        typeof toml.TRANSFER_SERVER_SEP0024 === "string" && toml.TRANSFER_SERVER_SEP0024.trim()
-          ? toml.TRANSFER_SERVER_SEP0024.trim()
-          : null
-
-      const kycServer =
-        typeof toml.KYC_SERVER === "string" && toml.KYC_SERVER.trim()
-          ? toml.KYC_SERVER.trim()
-          : null
-
-      // Parse currencies
-      const currencies: AnchorCurrency[] = []
-      if (Array.isArray(toml.CURRENCIES)) {
-        for (const curr of toml.CURRENCIES) {
-          if (curr && typeof curr === "object") {
-            const code = typeof curr.code === "string" ? curr.code.trim() : ""
-            if (!code) continue
-
-            const issuer =
-              typeof curr.issuer === "string" && curr.issuer.trim() ? curr.issuer.trim() : null
-
-            // Validate issuer if present
-            if (issuer && !isValidStellarAddress(issuer)) {
-              // Skip invalid issuers rather than failing the entire fetch
-              continue
-            }
-
-            currencies.push({
-              code,
-              issuer,
-              name: typeof curr.name === "string" ? curr.name : undefined,
-              desc: typeof curr.desc === "string" ? curr.desc : undefined,
-              image: typeof curr.image === "string" ? curr.image : undefined,
-              isAssetAnchored:
-                typeof curr.is_asset_anchored === "boolean" ? curr.is_asset_anchored : undefined,
-            })
-          }
-        }
-      }
-
-      const anchorInfo: AnchorInfo = {
-        homeDomain: normalizedDomain,
-        signingKey,
-        webAuthEndpoint,
-        transferServer,
-        transferServerSep24,
-        kycServer,
-        currencies,
-        raw: toml as Record<string, unknown>,
-      }
 
       setAnchor(anchorInfo)
       setError(null)
