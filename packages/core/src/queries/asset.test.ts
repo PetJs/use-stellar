@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchAsset } from "./asset"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"

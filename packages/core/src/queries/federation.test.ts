@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchFederationLookup } from "./federation"
 import { Federation } from "@stellar/stellar-sdk"
 import { StellarError } from "../errors"

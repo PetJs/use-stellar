@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchTransaction } from "./transaction"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"

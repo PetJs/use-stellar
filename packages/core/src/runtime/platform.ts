@@ -85,10 +85,10 @@ export function createPlatformCapabilities(
   overrides: Partial<PlatformCapabilities> & { kind: PlatformKind }
 ): PlatformCapabilities {
   // Start from detected defaults, apply overrides
-  const detected = detectPlatform()
+  const base = overrides.kind === "native" ? NATIVE_PLATFORM : detectPlatform()
 
   return {
-    ...detected,
+    ...base,
     ...overrides,
   }
 }

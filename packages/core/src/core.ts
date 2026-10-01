@@ -27,9 +27,9 @@ export {
 export {
   FREIGHTER_WALLET_TYPE,
   NETWORK_PASSPHRASES,
-  freighterAdapter,
   resolveNetworkFromPassphrase,
-} from "./wallets/freighterAdapter"
+} from "./wallets/constants"
+export { freighterAdapter } from "./wallets/freighterAdapter"
 export {
   getWalletAdapter,
   getWalletAdapters,
@@ -91,8 +91,6 @@ export {
 } from "./utils/retryWithBackoff"
 
 // ── Types ──────────────────────────────────────────────────────────────────
-export type { QueryConfig } from "./cache/types"
-export type { StellarError, StellarErrorCode } from "./errors"
 export type {
   StellarNetwork,
   NetworkConfig,
@@ -113,17 +111,6 @@ export type {
   ContractEvent,
 } from "./types"
 export { NETWORK_CONFIGS, getNetworkPassphrase } from "./types"
-export type {
-  RegisterWalletAdapterOptions,
-  SignTransactionOptions,
-  WalletAdapter,
-  WalletAdapterErrorCode,
-  WalletAdapterMetadata,
-  WalletChange,
-  WalletConnection,
-  WalletNetworkDetails,
-  WalletNetworkState,
-} from "./wallets"
 export * from "./queries/account"
 export * from "./queries/asset"
 export * from "./queries/claimableBalance"

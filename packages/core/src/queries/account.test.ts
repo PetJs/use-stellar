@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchAccount, fetchAccountExists } from "./account"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"

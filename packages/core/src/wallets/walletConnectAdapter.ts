@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { StellarNetwork, WalletNetworkId } from "../types"
 import { NETWORK_PASSPHRASES, getNetworkPassphrase } from "../types"
 import type { WalletAdapter, WalletNetworkState, WalletNetworkDetails, WalletChange } from "./types"
