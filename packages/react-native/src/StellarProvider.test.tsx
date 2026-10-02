@@ -1,7 +1,7 @@
 import React from "react"
 import { renderHook } from "@testing-library/react"
 import { StellarProvider } from "./StellarProvider"
-import { useStellarContext } from "@use-stellar/core"
+import { useStellarContext } from "use-stellar"
 import { createInMemoryStorage } from "./platform/asyncStorageSession"
 import { createAlwaysFocusedManager } from "./platform/appStateFocus"
 import { createAlwaysOnlineManager } from "./platform/netInfoOnline"

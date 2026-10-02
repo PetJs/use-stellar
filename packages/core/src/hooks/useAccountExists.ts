@@ -1,7 +1,8 @@
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer, isValidStellarAddress } from "../utils"
+import { isValidStellarAddress } from "../utils"
 import { toStellarError } from "../errors"
-import { useQuery, accountKey } from "../cache"
+import { useQuery } from "../cache"
+import { fetchAccountExists, accountKey } from "../queries/account"
 import type { UseAccountExistsOptions, UseAccountExistsReturn } from "../types"
 
 /**
@@ -34,19 +35,7 @@ export function useAccountExists({
     refetch,
   } = useQuery<{ exists: boolean; reason: UseAccountExistsReturn["reason"] }>({
     queryKey,
-    queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
-      try {
-        await server.loadAccount(address!)
-        return { exists: true, reason: "exists" as const }
-      } catch (err) {
-        const stellarError = toStellarError(err)
-        if (stellarError?.code === "ACCOUNT_NOT_FOUND") {
-          return { exists: false, reason: "not_funded" as const }
-        }
-        throw stellarError ?? err
-      }
-    },
+    queryFn: async () => fetchAccountExists(networkConfig, { address: address! }),
     store: queryStore,
     staleTime,
     enabled: Boolean(address) && formatValid,
