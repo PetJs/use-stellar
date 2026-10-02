@@ -1,7 +1,7 @@
-import { Federation } from "@stellar/stellar-sdk"
 import { createStellarError, toStellarError } from "../errors"
 import { useStellarContext } from "../context/StellarProvider"
-import { useQuery, federationKey } from "../cache"
+import { useQuery } from "../cache"
+import { fetchFederationLookup, federationKey } from "../queries/federation"
 import type {
   FederationRecord,
   UseFederationLookupOptions,
@@ -40,15 +40,7 @@ export function useFederationLookup({
     refetch,
   } = useQuery<FederationRecord>({
     queryKey,
-    queryFn: async () => {
-      const raw = await Federation.Server.resolve(normalizedAddress!)
-      return {
-        stellarAddress: normalizedAddress!,
-        accountId: raw.account_id,
-        memoType: raw.memo_type ?? undefined,
-        memo: raw.memo ?? undefined,
-      }
-    },
+    queryFn: async () => fetchFederationLookup({ address: normalizedAddress! }),
     store: queryStore,
     staleTime,
     enabled: Boolean(normalizedAddress) && formatValid,

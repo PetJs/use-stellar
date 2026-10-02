@@ -8,6 +8,9 @@ export function isBrowser(): boolean {
   return typeof window !== "undefined"
 }
 
+// Note: prefer runtime.platform.canConnectWallet over isBrowser()
+// for environment checks inside hooks. isBrowser() is kept for
+// public compatibility and simple DOM checks.
 /**
  * Returns `true` when running inside React Native (Hermes/JSC), matching the
  * detection already used by the wallet adapters (`registry.ts`,
