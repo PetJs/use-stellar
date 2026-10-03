@@ -68,6 +68,10 @@
   "peerDependencies": {
     "buffer": ">=6.0.0",
     "react": ">=18.0.0",
+    "react-native": ">=0.71.0",
+    "use-stellar": "workspace:*",
+    "@walletconnect/react-native-compat": "^2.0.0",
+    "@walletconnect/sign-client": "^2.0.0"
     "react-native": ">=0.68.0",
     "react-native-get-random-values": ">=1.8.0",
     "react-native-url-polyfill": ">=2.0.0",
@@ -91,6 +95,12 @@
       "optional": true
     },
     "@react-native-community/netinfo": {
+      "optional": true
+    },
+    "@walletconnect/react-native-compat": {
+      "optional": true
+    },
+    "@walletconnect/sign-client": {
       "optional": true
     }
   },
