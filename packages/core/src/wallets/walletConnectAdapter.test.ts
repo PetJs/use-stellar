@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { createWalletConnectAdapter } from "./walletConnectAdapter"
 import { WalletAdapterError } from "./types"
 

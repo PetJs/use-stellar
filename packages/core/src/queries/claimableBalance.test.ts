@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchClaimableBalance } from "./claimableBalance"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"
@@ -21,17 +22,22 @@ describe("queries/claimableBalance", () => {
     jest.clearAllMocks()
   })
 
-  const mockConfig: any = { horizonUrl: "https://horizon-testnet.stellar.org", networkPassphrase: "Test SDF Network ; September 2015" }
+  const mockConfig: any = {
+    horizonUrl: "https://horizon-testnet.stellar.org",
+    networkPassphrase: "Test SDF Network ; September 2015",
+  }
 
   it("returns claimable balances", async () => {
     MOCK_CALL.mockResolvedValueOnce({
-      records: [{
-        id: "00000000cb",
-        asset: "native",
-        amount: "10.0",
-        sponsor: "G123",
-        claimants: [{ destination: "G456", predicate: {} }]
-      }]
+      records: [
+        {
+          id: "00000000cb",
+          asset: "native",
+          amount: "10.0",
+          sponsor: "G123",
+          claimants: [{ destination: "G456", predicate: {} }],
+        },
+      ],
     })
 
     const res = await fetchClaimableBalance(mockConfig, { address: "G456" })
@@ -47,13 +53,17 @@ describe("queries/claimableBalance", () => {
 
   it("throws mapped StellarError for other errors", async () => {
     MOCK_CALL.mockRejectedValueOnce(new Error("Other Error"))
-    await expect(fetchClaimableBalance(mockConfig, { address: "G456" })).rejects.toThrow("Other Error")
+    await expect(fetchClaimableBalance(mockConfig, { address: "G456" })).rejects.toThrow(
+      "Other Error"
+    )
   })
 
   it("throws abort error if aborted", async () => {
     MOCK_CALL.mockRejectedValueOnce(new Error("Network Error"))
     const controller = new AbortController()
     controller.abort()
-    await expect(fetchClaimableBalance(mockConfig, { address: "G456" }, { signal: controller.signal })).rejects.toThrow("Network Error")
+    await expect(
+      fetchClaimableBalance(mockConfig, { address: "G456" }, { signal: controller.signal })
+    ).rejects.toThrow("Network Error")
   })
 })

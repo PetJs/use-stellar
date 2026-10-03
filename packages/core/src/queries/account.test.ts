@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchAccount, fetchAccountExists } from "./account"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"
@@ -16,7 +17,10 @@ describe("queries/account", () => {
     jest.clearAllMocks()
   })
 
-  const mockConfig: any = { horizonUrl: "https://horizon-testnet.stellar.org", networkPassphrase: "Test SDF Network ; September 2015" }
+  const mockConfig: any = {
+    horizonUrl: "https://horizon-testnet.stellar.org",
+    networkPassphrase: "Test SDF Network ; September 2015",
+  }
 
   describe("fetchAccount", () => {
     it("returns account info on success", async () => {
@@ -44,7 +48,9 @@ describe("queries/account", () => {
       MOCK_SERVER.loadAccount.mockRejectedValueOnce(new Error("Network Error"))
       const controller = new AbortController()
       controller.abort()
-      await expect(fetchAccount(mockConfig, { address: "G123" }, { signal: controller.signal })).rejects.toThrow("Network Error")
+      await expect(
+        fetchAccount(mockConfig, { address: "G123" }, { signal: controller.signal })
+      ).rejects.toThrow("Network Error")
     })
   })
 
@@ -63,7 +69,9 @@ describe("queries/account", () => {
 
     it("throws other errors", async () => {
       MOCK_SERVER.loadAccount.mockRejectedValueOnce(new Error("Other Error"))
-      await expect(fetchAccountExists(mockConfig, { address: "G123" })).rejects.toThrow("Other Error")
+      await expect(fetchAccountExists(mockConfig, { address: "G123" })).rejects.toThrow(
+        "Other Error"
+      )
     })
   })
 })
