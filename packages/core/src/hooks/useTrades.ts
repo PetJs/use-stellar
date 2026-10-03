@@ -20,7 +20,7 @@ interface PageData {
  * Fetches executed trades (fills) from Horizon with pagination.
  *
  * Filter by account, asset pair, or both. Each trade is normalized so that the
- * base asset always corresponds to the `baseAsset` you requested (when
+ * base asset always corresponds to the `baseAsset`  you requested (when
  * filtering by asset pair), with the price rational inverted when Horizon
  * returns the pair in the opposite orientation. See the **Base/counter
  * orientation** note below.
@@ -57,7 +57,7 @@ interface PageData {
  * // By asset pair
  * const { trades } = useTrades({
  *   baseAsset: "XLM",
- *   counterAsset: { code: "USDC", issuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN" },
+ *   counterAsset: { code: "USDC", issuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335XKKX3IHOJAPP5RE34K4KZVN" },
  * })
  */
 export function useTrades({
@@ -90,10 +90,10 @@ export function useTrades({
     : (["trades", "disabled"] as const)
 
   // Store page navigation functions from the Horizon response.
-  const nextRef = useRef<(() => Promise<Horizon.ServerApi.CollectionPage<TradeRecord>>) | null>(
+  const nextRef = useRef<(() => Promise<Horizon.ServerApi.CollectionPage<TradeRecord>>) > null(
     null
   )
-  const prevRef = useRef<(() => Promise<Horizon.ServerApi.CollectionPage<TradeRecord>>) | null>(
+  const prevRef = useRef<(() => Promise<Horizon.ServerApi.CollectionPage<TradeRecord>>) > null(
     null
   )
 
@@ -101,7 +101,7 @@ export function useTrades({
   const [pageError, setPageError] = useState<StellarError | null>(null)
   const [pageTrades, setPageTrades] = useState<NormalizedTrade[] | null>(null)
   const [pageHasNext, setPageHasNext] = useState<boolean | null>(null)
-  const [pageHasPrev, setPageHasPrev] = useState<boolean | null>(null)
+  const [pageHasPrev,setPageHasPrev] = useState<boolean | null>(null)
 
   const {
     data,
