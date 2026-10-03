@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchTransaction } from "./transaction"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"
@@ -21,7 +22,10 @@ describe("queries/transaction", () => {
     jest.clearAllMocks()
   })
 
-  const mockConfig: any = { horizonUrl: "https://horizon-testnet.stellar.org", networkPassphrase: "Test SDF Network ; September 2015" }
+  const mockConfig: any = {
+    horizonUrl: "https://horizon-testnet.stellar.org",
+    networkPassphrase: "Test SDF Network ; September 2015",
+  }
 
   it("returns success transaction info", async () => {
     MOCK_CALL.mockResolvedValueOnce({
@@ -73,6 +77,8 @@ describe("queries/transaction", () => {
     MOCK_CALL.mockRejectedValueOnce(new Error("Network error"))
     const controller = new AbortController()
     controller.abort()
-    await expect(fetchTransaction(mockConfig, { hash: "abc" }, { signal: controller.signal })).rejects.toThrow("Network error")
+    await expect(
+      fetchTransaction(mockConfig, { hash: "abc" }, { signal: controller.signal })
+    ).rejects.toThrow("Network error")
   })
 })

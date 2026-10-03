@@ -27,9 +27,9 @@ export {
 export {
   FREIGHTER_WALLET_TYPE,
   NETWORK_PASSPHRASES,
-  freighterAdapter,
   resolveNetworkFromPassphrase,
-} from "./wallets/freighterAdapter"
+} from "./wallets/constants"
+export { freighterAdapter } from "./wallets/freighterAdapter"
 export {
   getWalletAdapter,
   getWalletAdapters,
@@ -57,7 +57,12 @@ export {
   type StellarErrorCode,
 } from "./errors/codes"
 export { StellarError, isStellarError, type StellarErrorOptions } from "./errors/StellarError"
-export { createStellarError, toStellarError, toSubmissionError, isAbortError } from "./errors/factory"
+export {
+  createStellarError,
+  toStellarError,
+  toSubmissionError,
+  isAbortError,
+} from "./errors/factory"
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 export { DEFAULT_FEE_MULTIPLIER } from "./utils/fees"
@@ -77,11 +82,15 @@ export {
 } from "./utils/index"
 export type { FeeSource } from "./utils/fees"
 export { resolveFee, asFeeSource } from "./utils/fees"
-export { isRetriable, getRetryAfterMs, getErrorStatus, computeBackoffDelay, sleep } from "./utils/retryWithBackoff"
+export {
+  isRetriable,
+  getRetryAfterMs,
+  getErrorStatus,
+  computeBackoffDelay,
+  sleep,
+} from "./utils/retryWithBackoff"
 
 // ── Types ──────────────────────────────────────────────────────────────────
-export type { QueryConfig } from "./cache/types"
-export type { StellarError, StellarErrorCode } from "./errors"
 export type {
   StellarNetwork,
   NetworkConfig,
@@ -102,17 +111,6 @@ export type {
   ContractEvent,
 } from "./types"
 export { NETWORK_CONFIGS, getNetworkPassphrase } from "./types"
-export type {
-  RegisterWalletAdapterOptions,
-  SignTransactionOptions,
-  WalletAdapter,
-  WalletAdapterErrorCode,
-  WalletAdapterMetadata,
-  WalletChange,
-  WalletConnection,
-  WalletNetworkDetails,
-  WalletNetworkState,
-} from "./wallets"
 export * from "./queries/account"
 export * from "./queries/asset"
 export * from "./queries/claimableBalance"

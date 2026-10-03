@@ -8,7 +8,7 @@
  * React Native is neither a server nor a browser — this model handles all three.
  */
 
-export type PlatformKind = 'web' | 'server' | 'native'
+export type PlatformKind = "web" | "server" | "native"
 
 export interface PlatformCapabilities {
   /** The environment kind */
@@ -27,7 +27,7 @@ export interface PlatformCapabilities {
   isServer: boolean
 
   /** Storage adapter to use — null if no storage available */
-  storage: 'localStorage' | 'asyncStorage' | 'memory' | null
+  storage: "localStorage" | "asyncStorage" | "memory" | null
 }
 
 /**
@@ -41,9 +41,9 @@ export interface PlatformCapabilities {
  */
 export function detectPlatform(): PlatformCapabilities {
   // Server-side render or Node.js
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return {
-      kind: 'server',
+      kind: "server",
       canConnectWallet: false,
       hasLocalStorage: false,
       hasDom: false,
@@ -54,12 +54,12 @@ export function detectPlatform(): PlatformCapabilities {
 
   // Web browser
   return {
-    kind: 'web',
+    kind: "web",
     canConnectWallet: true,
-    hasLocalStorage: typeof localStorage !== 'undefined',
+    hasLocalStorage: typeof localStorage !== "undefined",
     hasDom: true,
     isServer: false,
-    storage: 'localStorage',
+    storage: "localStorage",
   }
 }
 
@@ -69,12 +69,12 @@ export function detectPlatform(): PlatformCapabilities {
  * packages/core must NEVER import react-native.
  */
 export const NATIVE_PLATFORM: PlatformCapabilities = {
-  kind: 'native',
-  canConnectWallet: true,       // RN CAN connect wallets (no window needed)
-  hasLocalStorage: false,       // no localStorage on RN
-  hasDom: false,                // no DOM on RN
-  isServer: false,              // RN is not SSR
-  storage: 'asyncStorage',      // RN uses AsyncStorage
+  kind: "native",
+  canConnectWallet: true, // RN CAN connect wallets (no window needed)
+  hasLocalStorage: false, // no localStorage on RN
+  hasDom: false, // no DOM on RN
+  isServer: false, // RN is not SSR
+  storage: "asyncStorage", // RN uses AsyncStorage
 }
 
 /**
@@ -85,10 +85,10 @@ export function createPlatformCapabilities(
   overrides: Partial<PlatformCapabilities> & { kind: PlatformKind }
 ): PlatformCapabilities {
   // Start from detected defaults, apply overrides
-  const detected = detectPlatform()
+  const base = overrides.kind === "native" ? NATIVE_PLATFORM : detectPlatform()
 
   return {
-    ...detected,
+    ...base,
     ...overrides,
   }
 }

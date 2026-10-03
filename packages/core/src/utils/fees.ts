@@ -22,7 +22,7 @@ import type { FeeOptions } from "../types"
 export const DEFAULT_FEE_MULTIPLIER = 10
 
 /** The subset of the Horizon server this module needs. */
-interface FeeSource {
+export interface FeeSource {
   fetchBaseFee: () => Promise<number>
 }
 

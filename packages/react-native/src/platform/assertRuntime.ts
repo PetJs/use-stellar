@@ -29,18 +29,21 @@ export function checkStellarRuntime(): RuntimeCheckResult {
     missing.push({
       global: "Buffer",
       description: "Required for XDR encoding and transaction building",
-      fix: 'Add `npm install buffer` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.',
+      fix: "Add `npm install buffer` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.",
     })
   }
 
   // Check crypto.getRandomValues
 
-  if (typeof global.crypto === "undefined" || typeof global.crypto.getRandomValues === "undefined") {
+  if (
+    typeof global.crypto === "undefined" ||
+    typeof global.crypto.getRandomValues === "undefined"
+  ) {
     missing.push({
       global: "crypto.getRandomValues",
       description:
         "Required for cryptographically secure random number generation (keypairs, transaction hashing)",
-      fix: 'Add `npm install react-native-get-random-values` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.',
+      fix: "Add `npm install react-native-get-random-values` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.",
     })
   }
 
@@ -50,7 +53,7 @@ export function checkStellarRuntime(): RuntimeCheckResult {
     missing.push({
       global: "URL",
       description: "Required for Horizon API URL construction",
-      fix: 'Add `npm install react-native-url-polyfill` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.',
+      fix: "Add `npm install react-native-url-polyfill` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.",
     })
   }
 
@@ -60,7 +63,7 @@ export function checkStellarRuntime(): RuntimeCheckResult {
     missing.push({
       global: "TextEncoder",
       description: "Required for string encoding in XDR operations",
-      fix: 'Add `npm install text-encoding` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.',
+      fix: "Add `npm install text-encoding` and import `@use-stellar/react-native/polyfills` at the top of your app entry point.",
     })
   }
 
@@ -92,6 +95,6 @@ export function assertStellarRuntime(): void {
     `[use-stellar] Missing required polyfills for Stellar SDK on React Native:${missingList}\n\n` +
       `Quick fix: Add this import to the TOP of your app entry point (before any other imports):\n` +
       `import '@use-stellar/react-native/polyfills'\n\n` +
-      `See: https://github.com/RaceeyXo/use-stellar/packages/react-native#polyfills`,
+      `See: https://github.com/RaceeyXo/use-stellar/packages/react-native#polyfills`
   )
 }

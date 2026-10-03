@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useStellarContext, WALLET_SESSION_STORAGE_KEY } from "../context/StellarProvider"
 import type { AutoConnectOptions, StellarNetwork, WalletState, WalletType } from "../types"
-import { useStellarContext } from "../context/StellarProvider"
-import { isBrowser } from "../utils"
-import type { StellarNetwork, WalletState, WalletType } from "../types"
 import { createStellarError, toStellarError } from "../errors"
-import { getWalletAdapter } from "../wallets"
+import { getWalletAdapter, hasWalletAdapter } from "../wallets"
 import { readWalletSession, writeWalletSession } from "../runtime/walletSession"
 import type { WalletAdapter, WalletChange } from "../wallets"
 
@@ -47,7 +44,10 @@ function getStorage(kind: AutoConnectOptions["storage"], hasLocalStorage: boolea
  * A stored value is attacker-influenced input in an XSS scenario, so it is
  * validated before it ever reaches the registry.
  */
-function readSession(kind: AutoConnectOptions["storage"], hasLocalStorage: boolean): PersistedSession | null {
+function readSession(
+  kind: AutoConnectOptions["storage"],
+  hasLocalStorage: boolean
+): PersistedSession | null {
   const storage = getStorage(kind, hasLocalStorage)
   if (!storage) return null
 
@@ -70,7 +70,11 @@ function readSession(kind: AutoConnectOptions["storage"], hasLocalStorage: boole
   }
 }
 
-function writeSession(kind: AutoConnectOptions["storage"], hasLocalStorage: boolean, session: PersistedSession | null): void {
+function writeSession(
+  kind: AutoConnectOptions["storage"],
+  hasLocalStorage: boolean,
+  session: PersistedSession | null
+): void {
   const storage = getStorage(kind, hasLocalStorage)
   if (!storage) return
 
@@ -188,6 +192,9 @@ export function useWallet(): UseWalletReturn {
 
         if (autoConnect.enabled) {
           writeSession(autoConnect.storage, platform.hasLocalStorage, {
+            wallet: String(connection.wallet),
+            ...(autoConnect.persistAddress ? { address: connection.address } : {}),
+          })
           void writeWalletSession(autoConnect.storage, {
             wallet: String(connection.wallet),
             ...(autoConnect.persistAddress ? { address: connection.address } : {}),
@@ -201,7 +208,14 @@ export function useWallet(): UseWalletReturn {
         }))
       }
     },
-    [safeSetWallet, network, autoConnect.enabled, autoConnect.persistAddress, autoConnect.storage, platform]
+    [
+      safeSetWallet,
+      network,
+      autoConnect.enabled,
+      autoConnect.persistAddress,
+      autoConnect.storage,
+      platform,
+    ]
   )
 
   const disconnect = useCallback(() => {
@@ -216,7 +230,6 @@ export function useWallet(): UseWalletReturn {
 
     restoredWalletRef.current = null
     setRestoredWallet(null)
-    writeSession(autoConnect.storage, null)
     writeSession(autoConnect.storage, platform.hasLocalStorage, null)
     void writeWalletSession(autoConnect.storage, null)
 
