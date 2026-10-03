@@ -3,6 +3,7 @@ import { DEFAULT_STALE_TIME } from "./types"
 import type { QueryStore } from "./store"
 import { serializeKey } from "./keys"
 import { retryWithBackoff, getRetryAfterMs } from "../utils/retryWithBackoff"
+import { onlineManager } from "../runtime/onlineManager"
 
 /**
  * Options for {@link createQueryObserver}.
@@ -105,6 +106,10 @@ export interface QueryObserver<T> {
  * - On 429: honours `Retry-After`, retries up to `maxRetries` times with
  *   exponential back-off. `getRateLimitedUntil()` exposes the resulting
  *   rate-limit window without requiring a subscription.
+ * - While offline (see `onlineManager`): no new request starts, forced or not,
+ *   and cached data stays visible. A request that fails because the connection
+ *   dropped does not overwrite the entry with an error. On reconnect, the query
+ *   refetches once if its data is stale.
  */
 export function createQueryObserver<T>(options: QueryObserverOptions<T>): QueryObserver<T> {
   const store = options.store
@@ -119,6 +124,7 @@ export function createQueryObserver<T>(options: QueryObserverOptions<T>): QueryO
 
   const listeners = new Set<QueryObserverListener<T>>()
   let storeUnsubscribe: (() => void) | null = null
+  let onlineUnsubscribe: (() => void) | null = null
   let destroyed = false
 
   function readSnapshot(): QueryObserverSnapshot<T> {
@@ -168,12 +174,23 @@ export function createQueryObserver<T>(options: QueryObserverOptions<T>): QueryO
       storeUnsubscribe()
       storeUnsubscribe = null
     }
+    if (onlineUnsubscribe) {
+      onlineUnsubscribe()
+      onlineUnsubscribe = null
+    }
   }
 
   function subscribeToStore(): void {
     if (storeUnsubscribe) return
     storeUnsubscribe = store.subscribe<T>(queryKey, entry => {
       updateFromEntry(entry)
+    })
+    // Coming back online refetches once, and only if the data is stale. Every
+    // observer on a key hears the event, but the first one's request is
+    // registered in the store synchronously, so the rest await it instead of
+    // sending their own.
+    onlineUnsubscribe = onlineManager.subscribe(online => {
+      if (online) void fetch({ force: false })
     })
   }
 
@@ -204,6 +221,16 @@ export function createQueryObserver<T>(options: QueryObserverOptions<T>): QueryO
       return
     }
 
+    // Offline: the request can only fail, and its error would replace data
+    // that is still worth showing. Skip it; reconnecting refetches.
+    if (!onlineManager.isOnline()) {
+      return
+    }
+
+    // Kept so a request cut off by going offline can settle the entry back to
+    // how it was, rather than to an error about the connection.
+    const previousError = currentStore.getSnapshot<T>(currentKey)?.error ?? null
+
     const promise = retryWithBackoff(() => currentFn(), {
       maxRetries: currentMaxRetries,
     })
@@ -217,6 +244,15 @@ export function createQueryObserver<T>(options: QueryObserverOptions<T>): QueryO
       rateLimitedUntil = null
       currentStore.setData(currentKey, data)
     } catch (err) {
+      // The connection dropped mid-request. That says nothing about the query,
+      // so settle the entry as it was: `data` and `updatedAt` are left alone,
+      // the cached value stays visible, and the reconnect refetch sees it as
+      // stale.
+      if (!onlineManager.isOnline()) {
+        currentStore.setError(currentKey, previousError)
+        return
+      }
+
       const retryMs = getRetryAfterMs(err)
       rateLimitedUntil = retryMs !== null ? Date.now() + retryMs : null
       currentStore.setError(currentKey, err)

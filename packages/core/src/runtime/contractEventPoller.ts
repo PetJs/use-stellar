@@ -1,5 +1,6 @@
 import { SorobanRpc, scValToNative, xdr } from "@stellar/stellar-sdk"
 import { createStellarError, toStellarError } from "../errors"
+import { onlineManager } from "./onlineManager"
 import type { ContractEvent, StellarError, NetworkConfig } from "../types"
 
 /** How often (ms) to poll the RPC when no interval is given. */
@@ -164,6 +165,7 @@ export function createContractEventPoller(
   const seen = new Set<string>()
 
   let timer: ReturnType<typeof setInterval> | null = null
+  let onlineUnsubscribe: (() => void) | null = null
   let running = false
   // Monotonic id used to drop out-of-order or post-stop responses.
   let requestId = 0
@@ -184,6 +186,9 @@ export function createContractEventPoller(
   async function poll(): Promise<void> {
     if (!running) return
     if (contractIds.length === 0) return
+    // Offline, a poll can only fail. Skip it and keep the events already
+    // delivered; the cursor is untouched, so reconnecting resumes from it.
+    if (!onlineManager.isOnline()) return
 
     const fetchId = ++requestId
     loading = true
@@ -236,6 +241,8 @@ export function createContractEventPoller(
       }
     } catch (err) {
       if (fetchId !== requestId || !running) return
+      // The connection dropped mid-poll — not an error worth surfacing.
+      if (!onlineManager.isOnline()) return
 
       const message = err instanceof Error ? err.message : String(err)
 
@@ -263,6 +270,10 @@ export function createContractEventPoller(
     timer = setInterval(() => {
       void poll()
     }, intervalMs)
+    // Catch up once on reconnect rather than waiting out the interval.
+    onlineUnsubscribe = onlineManager.subscribe(online => {
+      if (online) void poll()
+    })
   }
 
   function stop(): void {
@@ -271,6 +282,10 @@ export function createContractEventPoller(
     if (timer !== null) {
       clearInterval(timer)
       timer = null
+    }
+    if (onlineUnsubscribe) {
+      onlineUnsubscribe()
+      onlineUnsubscribe = null
     }
     // Invalidate any in-flight poll so its result cannot publish late.
     requestId += 1
