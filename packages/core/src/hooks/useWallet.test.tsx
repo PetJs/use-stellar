@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { type ReactNode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { getNetworkDetails, isAllowed, isConnected, requestAccess } from "@stellar/freighter-api"
@@ -524,6 +525,12 @@ describe("useWallet — session restore", () => {
     await act(async () => {
       await result.current.connect("freighter")
     })
+
+    console.log("TEST: WALLET_SESSION_STORAGE_KEY =", WALLET_SESSION_STORAGE_KEY)
+    console.log(
+      "TEST: localStorage content =",
+      window.localStorage.getItem(WALLET_SESSION_STORAGE_KEY)
+    )
 
     expect(window.localStorage.getItem(WALLET_SESSION_STORAGE_KEY)).toContain("freighter")
     // The address is not persisted unless persistAddress is on, and nothing

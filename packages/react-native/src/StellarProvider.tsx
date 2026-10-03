@@ -17,13 +17,13 @@ import {
   StellarProvider as CoreStellarProvider,
   registerWalletAdapter,
   type StellarProviderProps as CoreStellarProviderProps,
-} from "@use-stellar/core"
+} from "use-stellar"
 import type {
   AutoConnectOptions,
   CustomNetworkConfig,
   QueryConfig,
   StellarNetwork,
-} from "@use-stellar/core"
+} from "use-stellar"
 import type { Storage } from "./platform/asyncStorageSession"
 import { createAsyncStorageAdapter } from "./platform/asyncStorageSession"
 import { createAppStateFocusManager } from "./platform/appStateFocus"
@@ -114,7 +114,7 @@ export interface NativeStellarProviderProps extends Omit<CoreStellarProviderProp
  *
  * ```tsx
  * import { StellarProvider } from "@use-stellar/react-native"
- * import { useBalance } from "@use-stellar/core"
+ * import { useBalance } from "use-stellar"
  *
  * function App() {
  *   return (
@@ -336,5 +336,3 @@ export function StellarProvider({
 
   return <CoreStellarProvider {...coreProps} />
 }
-
-export type { NativeStellarProviderProps }

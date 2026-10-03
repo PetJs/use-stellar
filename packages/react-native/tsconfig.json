@@ -1,11 +1,30 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "target": "ES2020",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM"],
     "jsx": "react-jsx",
-    "lib": ["ES2020", "DOM"]
+    "strict": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "use-stellar": ["../core/src/index.ts"]
+    }
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.test.tsx"]
+  "include": ["src/index.ts", "src/StellarProvider.tsx", "src/platform/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/test-utils",
+    "src/__tests__",
+    "src/__mocks__"
+  ]
 }

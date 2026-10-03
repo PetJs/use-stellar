@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
-import { getHorizonServer } from "../utils"
+import { fetchTransaction } from "../services/fetchTransaction"
 import { toStellarError } from "../errors"
-import { useQuery, transactionKey } from "../cache"
-import type { StellarError, TransactionResult, TransactionStatus } from "../types"
+import { useQuery } from "../cache"
+import { fetchTransaction, transactionKey } from "../queries/transaction"
+import type { StellarError, TransactionResult } from "../types"
 
 export interface UseTransactionOptions {
   hash: string | null
@@ -57,29 +58,8 @@ export function useTransaction({
     refetch,
   } = useQuery<TransactionResult>({
     queryKey,
-    queryFn: async () => {
-      const server = getHorizonServer(networkConfig)
-      try {
-        const raw = await server.transactions().transaction(hash!).call()
-        const status: TransactionStatus = raw.successful ? "success" : "failed"
-        return {
-          hash: raw.hash,
-          status,
-          ledger: Number(raw.ledger),
-          createdAt: raw.created_at,
-          fee: String(raw.fee_charged),
-          envelope: raw.envelope_xdr,
-        }
-      } catch (err) {
-        const is404 = (err as { response?: { status: number } })?.response?.status === 404
-        if (is404) {
-          return {
-            hash: hash!,
-            status: watch ? ("pending" as TransactionStatus) : ("not_found" as TransactionStatus),
-          }
-        }
-        throw err
-      }
+queryFn: async () => {
+      return fetchTransaction(networkConfig, hash!, { watch })
     },
     store: queryStore,
     staleTime,

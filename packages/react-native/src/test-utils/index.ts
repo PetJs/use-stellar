@@ -25,7 +25,16 @@
  */
 
 // Test renderer
-export { renderWithStellar, TestText, TestError, TestLoading, TestContainer } from "./render"
+export {
+  renderWithStellar,
+  renderHookWithStellar,
+  waitFor,
+  act,
+  TestText,
+  TestError,
+  TestLoading,
+  TestContainer,
+} from "./render"
 export type { RenderWithStellarOptions } from "./render"
 
 // Mock lifecycle and state inspection helpers
