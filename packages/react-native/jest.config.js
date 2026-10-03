@@ -27,6 +27,7 @@ module.exports = {
     ],
   },
   moduleNameMapper: {
+    "^@use-stellar/core$": "<rootDir>/../core/src/index.ts",
     "^use-stellar$": "<rootDir>/../core/src/index.ts",
     "^@stellar/stellar-sdk$": "<rootDir>/../core/src/__mocks__/@stellar/stellar-sdk.ts",
     "^react-native$": "<rootDir>/src/__mocks__/react-native.ts",

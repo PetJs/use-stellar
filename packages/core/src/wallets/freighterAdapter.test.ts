@@ -4,7 +4,8 @@ import {
   requestAccess,
   signTransaction,
 } from "@stellar/freighter-api"
-import { NETWORK_PASSPHRASES, freighterAdapter } from "./freighterAdapter"
+import { freighterAdapter } from "./freighterAdapter"
+import { NETWORK_PASSPHRASES } from "./constants"
 
 jest.mock("@stellar/freighter-api", () => ({
   getNetworkDetails: jest.fn(),

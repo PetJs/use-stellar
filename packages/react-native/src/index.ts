@@ -2,14 +2,20 @@
  * @use-stellar/react-native
  *
  * React Native StellarProvider with native platform integrations for AppState,
- * NetInfo, and AsyncStorage. Re-exports all core hooks and types.
+ * NetInfo, and AsyncStorage, plus every public API from `use-stellar`, so apps
+ * depend on one package.
+ *
+ * NOTE: Does NOT import polyfills. Apps must explicitly import:
+ *   import "@use-stellar/react-native/polyfills"
  */
 
-// Provider
+// ── Provider ───────────────────────────────────────────────────────────────
+// The native provider. This explicit export takes precedence over the web
+// `StellarProvider` that `export * from "use-stellar"` below would re-export.
 export { StellarProvider } from "./StellarProvider"
 export type { NativeStellarProviderProps } from "./StellarProvider"
 
-// Platform integrations
+// ── Platform integrations ──────────────────────────────────────────────────
 export { createAppStateFocusManager, createAlwaysFocusedManager } from "./platform/appStateFocus"
 export type { FocusManager } from "./platform/appStateFocus"
 
@@ -19,82 +25,16 @@ export type { OnlineManager } from "./platform/netInfoOnline"
 export { createAsyncStorageAdapter, createInMemoryStorage } from "./platform/asyncStorageSession"
 export type { Storage } from "./platform/asyncStorageSession"
 
-// Re-export all core hooks and types
 export {
-  // Provider
-  useStellarContext,
-  WALLET_SESSION_STORAGE_KEY,
-  // Hooks
-  useWallet,
-  useBalance,
-  useAccount,
-  useAccountExists,
-  useSendPayment,
-  useAddTrustline,
-  useTransaction,
-  useNetwork,
-  useAsset,
-  useFederationLookup,
-  useSorobanContract,
-  useSorobanWrite,
-  usePaymentPaths,
-  useContractEvents,
-  usePathPayment,
-  usePayments,
-  useTransactionHistory,
-  usePaymentHistory,
-  useClaimableBalance,
-  useFeeStats,
-  useAnchor,
-  useTrades,
-  useSep10Auth,
-  // Utilities
-  registerWalletAdapter,
-  getWalletAdapter,
-  getWalletAdapters,
-  hasWalletAdapter,
-} from "use-stellar"
+  initDeepLinkHandler,
+  registerPendingRequest,
+  persistSession,
+  restoreSession,
+  clearSession,
+} from "./platform/deepLinkHandler"
+export type { WalletSession } from "./platform/deepLinkHandler"
 
-export type {
-  // Types
-  StellarNetwork,
-  NetworkConfig,
-  CustomNetworkConfig,
-  StellarContextValue,
-  WalletState,
-  AutoConnectOptions,
-  QueryConfig,
-  // Wallet types
-  WalletType,
-  WalletNetworkId,
-  // Error types
-  StellarError,
-  StellarErrorCode,
-  // Hook return types
-  UseWalletReturn,
-  UseBalanceOptions,
-  UseBalanceReturn,
-  UseAccountOptions,
-  UseAccountReturn,
-  UseSendPaymentReturn,
-  UseTransactionOptions,
-  UseTransactionReturn,
-  UseNetworkReturn,
-  AssetInfo,
-  UseAssetOptions,
-  UseAssetReturn,
-  FederationRecord,
-  UseFederationLookupOptions,
-  UseFederationLookupReturn,
-  UseSorobanContractReturn,
-  SorobanInvokeOptions,
-  UseSorobanWriteReturn,
-  UseClaimableBalanceOptions,
-  UseClaimableBalanceReturn,
-  AnchorInfo,
-  AnchorCurrency,
-  UseAnchorOptions,
-  UseAnchorReturn,
-  UseSep10AuthOptions,
-  UseSep10AuthReturn,
-} from "use-stellar"
+// ── Everything else from core ──────────────────────────────────────────────
+// Hooks, wallet adapters, errors, utilities, and types — the same hooks the
+// web build uses, never a fork.
+export * from "use-stellar"

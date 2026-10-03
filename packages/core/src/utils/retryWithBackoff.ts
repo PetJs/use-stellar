@@ -70,7 +70,7 @@ export function getRetryAfterMs(error: unknown): number | null {
 /**
  * Extract the HTTP status code from an Axios/Horizon-style error object.
  */
-function getErrorStatus(error: unknown): number | undefined {
+export function getErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== "object") return undefined
   const response = (error as { response?: unknown }).response
   if (!response || typeof response !== "object") return undefined
@@ -95,7 +95,7 @@ export function computeBackoffDelay(attempt: number): number {
 }
 
 /** Promise-based sleep. */
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 

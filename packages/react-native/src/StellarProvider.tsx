@@ -18,7 +18,12 @@ import {
   focusManager as coreFocusManager,
   type StellarProviderProps as CoreStellarProviderProps,
 } from "use-stellar"
-import type { AutoConnectOptions } from "use-stellar"
+import type {
+  AutoConnectOptions,
+  CustomNetworkConfig,
+  QueryConfig,
+  StellarNetwork,
+} from "use-stellar"
 import type { Storage } from "./platform/asyncStorageSession"
 import { createAsyncStorageAdapter } from "./platform/asyncStorageSession"
 import { createAppStateFocusManager } from "./platform/appStateFocus"

@@ -323,6 +323,19 @@ throw createStellarError("WALLET_NOT_CONNECTED") // build one directly
 
 ## Examples
 
+### React Native (Expo)
+
+A testnet Expo development-build example lives at [`examples/react-native-expo`](examples/react-native-expo). It wires `@use-stellar/react-native` (workspace) with polyfills, `StellarProvider`, a `use-stellar` deep-link scheme, and screens for connect, balance/account, payment history, and send payment. WalletConnect `projectId` is read from `EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID` and is never committed.
+
+```bash
+pnpm install
+pnpm --filter use-stellar build
+cp examples/react-native-expo/.env.example examples/react-native-expo/.env
+pnpm --filter @use-stellar/example-react-native-expo start
+```
+
+See the example [README](examples/react-native-expo/README.md) for development-build and `npx expo export` steps.
+
 ### Check a balance
 
 ```tsx

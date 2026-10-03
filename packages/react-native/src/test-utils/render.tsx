@@ -31,7 +31,8 @@
 import React, { ReactElement } from "react"
 import { Text, View } from "react-native"
 import { render, RenderOptions } from "@testing-library/react-native"
-import type { StellarNetwork } from "use-stellar"
+import { act, create, type ReactTestRenderer } from "react-test-renderer"
+import type { CustomNetworkConfig, StellarNetwork } from "use-stellar"
 import { StellarProvider, type NativeStellarProviderProps } from "../StellarProvider"
 
 /**
@@ -125,5 +126,57 @@ export function TestLoading({ label, isLoading }: { label: string; isLoading: bo
 export function TestContainer({ children }: { children: React.ReactNode }) {
   return <View testID="test-container">{children}</View>
 }
+
+export function renderHookWithStellar<T>(
+  callback: () => T,
+  options: {
+    network?: StellarNetwork
+    networkConfig?: CustomNetworkConfig
+  } = {}
+) {
+  const result = { current: undefined as T }
+  let root: ReactTestRenderer
+  const { network = "testnet", networkConfig } = options
+
+  function Probe() {
+    result.current = callback()
+    return null
+  }
+
+  act(() => {
+    root = create(
+      <StellarProvider network={network} networkConfig={networkConfig}>
+        <Probe />
+      </StellarProvider>
+    )
+  })
+
+  return {
+    result,
+    unmount: () => {
+      act(() => {
+        root.unmount()
+      })
+    },
+  }
+}
+
+export async function waitFor(assertion: () => void, tries = 50): Promise<void> {
+  let lastError: unknown
+  for (let i = 0; i < tries; i++) {
+    try {
+      assertion()
+      return
+    } catch (error) {
+      lastError = error
+      await act(async () => {
+        await Promise.resolve()
+      })
+    }
+  }
+  throw lastError
+}
+
+export { act }
 
 export default renderWithStellar

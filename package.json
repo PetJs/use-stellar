@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "pnpm build:lib && pnpm --filter @use-stellar/demo dev",
     "build": "pnpm build:lib && pnpm --filter @use-stellar/demo build",
-    "build:lib": "pnpm --filter use-stellar build",
+    "build:lib": "pnpm --filter use-stellar build && pnpm --filter @use-stellar/react-native build",
     "size": "pnpm --filter use-stellar size",
     "size:why": "pnpm --filter use-stellar size:why",
     "test": "pnpm --filter use-stellar test && pnpm --filter @use-stellar/react-native test",
@@ -21,7 +21,7 @@
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,json}\"",
     "lint": "eslint \"packages/core/src/**/*.{ts,tsx}\" \"packages/react-native/src/**/*.{ts,tsx}\" --max-warnings 0 && pnpm --filter @use-stellar/demo lint",
     "lint:fix": "eslint \"packages/core/src/**/*.{ts,tsx}\" --fix --max-warnings 0 && pnpm --filter @use-stellar/demo lint",
-    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && pnpm --filter @use-stellar/demo typecheck && pnpm --filter @use-stellar/react-native typecheck",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && pnpm --filter @use-stellar/react-native typecheck && tsc --noEmit -p examples/react-native-expo/tsconfig.json && pnpm --filter @use-stellar/demo typecheck",
     "prepare": "husky"
   },
   "lint-staged": {

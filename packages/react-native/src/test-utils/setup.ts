@@ -28,13 +28,10 @@ Object.defineProperty(globalThis, "navigator", {
 // This ensures deterministic polling, retries, and lifecycle events.
 jest.useFakeTimers()
 
-// ── Global Test Lifecycle ────────────────────────────────────────────
 beforeEach(() => {
-  // Reset all mock state and runtime before each test
   resetAllMocks()
 })
 
 afterEach(() => {
-  // Clear any pending timers after each test
   jest.clearAllTimers()
 })

@@ -152,16 +152,20 @@ describe("useAnchor on React Native", () => {
       { wrapper, initialProps: { homeDomain: "first.example.org" } }
     )
     await flush()
-    expect(controllers).toHaveLength(1)
-    expect(controllers[0].signal.aborted).toBe(false)
+    // Every controller created for the first lookup (the hook's and the
+    // fetcher's) is live while it is in flight.
+    const firstLookup = [...controllers]
+    expect(firstLookup.length).toBeGreaterThan(0)
+    expect(firstLookup.every(c => !c.signal.aborted)).toBe(true)
 
     rerender({ homeDomain: "second.example.org" })
     await flush()
 
     // The first lookup is aborted; the second is live.
-    expect(controllers[0].signal.aborted).toBe(true)
-    expect(controllers).toHaveLength(2)
-    expect(controllers[1].signal.aborted).toBe(false)
+    const secondLookup = controllers.slice(firstLookup.length)
+    expect(firstLookup.every(c => c.signal.aborted)).toBe(true)
+    expect(secondLookup.length).toBeGreaterThan(0)
+    expect(secondLookup.every(c => !c.signal.aborted)).toBe(true)
     expect(result.current.loading).toBe(true)
 
     // A late answer for the superseded domain never lands.
@@ -185,10 +189,11 @@ describe("useAnchor on React Native", () => {
       wrapper,
     })
     await flush()
-    expect(controllers[0].signal.aborted).toBe(false)
+    expect(controllers.length).toBeGreaterThan(0)
+    expect(controllers.every(c => !c.signal.aborted)).toBe(true)
 
     unmount()
-    expect(controllers[0].signal.aborted).toBe(true)
+    expect(controllers.every(c => c.signal.aborted)).toBe(true)
 
     // Resolving after unmount must not update state (no act/unmounted warnings).
     await act(async () => pending.resolve(tomlFor("testanchor.stellar.org")))
@@ -212,6 +217,7 @@ describe("useAnchor on React Native", () => {
     expect(result.current.loading).toBe(false)
     expect(result.current.error?.code).toBe("NETWORK_ERROR")
     expect(result.current.error?.message).toMatch(/timed out/)
-    expect(controllers[0].signal.aborted).toBe(true)
+    // The timeout aborts the fetcher's request.
+    expect(controllers.some(c => c.signal.aborted)).toBe(true)
   })
 })

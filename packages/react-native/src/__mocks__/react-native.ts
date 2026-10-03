@@ -15,6 +15,8 @@
 
 import AppState from "../test-utils/mocks/AppState"
 import Linking from "../test-utils/mocks/Linking"
+import NetInfo from "../test-utils/mocks/NetInfo"
+import AsyncStorage from "../test-utils/mocks/AsyncStorage"
 
 export const View = "View"
 export const Text = "Text"
@@ -48,4 +50,4 @@ export const Dimensions = {
 
 export const useWindowDimensions = () => Dimensions.get()
 
-export { AppState, Linking }
+export { AppState, Linking, AsyncStorage, NetInfo }

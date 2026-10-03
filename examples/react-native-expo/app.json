@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "use-stellar Expo example",
+    "slug": "use-stellar-react-native-expo",
+    "scheme": "use-stellar",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "org.usestellar.example",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "org.usestellar.example"
+    },
+    "plugins": ["expo-linking"]
+  }
+}

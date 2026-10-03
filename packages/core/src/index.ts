@@ -7,6 +7,23 @@ export {
 } from "./context/StellarProvider"
 export type { StellarProviderProps, QueryConfig } from "./context/StellarProvider"
 
+// ── Runtime (framework-neutral) ────────────────────────────────────────────
+export { createStellarRuntime } from "./runtime/StellarRuntime"
+export type {
+  StellarRuntime,
+  StellarRuntimeOptions,
+  StellarRuntimeSnapshot,
+  StellarRuntimeListener,
+} from "./runtime/StellarRuntime"
+export {
+  readWalletSession,
+  writeWalletSession,
+  clearWalletSession,
+  getWalletSessionStorage,
+  WALLET_SESSION_STORAGE_KEY as WALLET_SESSION_KEY,
+} from "./runtime/walletSession"
+export type { PersistedWalletSession, WalletSessionStorage } from "./runtime/walletSession"
+
 // ── Hooks ──────────────────────────────────────────────────────────────────
 export * from "./hooks/useSorobanWrite"
 export type { SorobanInvokeOptions, UseSorobanWriteReturn } from "./types"
@@ -32,6 +49,7 @@ export type {
   UseFederationLookupOptions,
   UseFederationLookupReturn,
 } from "./types"
+export { resolveNetworkConfig } from "./runtime/network"
 export { useSorobanContract, ANONYMOUS_SIMULATION_SOURCE } from "./hooks/useSorobanContract"
 export type { UseSorobanContractReturn } from "./hooks/useSorobanContract"
 export { usePaymentPaths } from "./hooks/usePaymentPaths"
@@ -70,17 +88,39 @@ export type { CreateAccountOptions, UseCreateAccountReturn } from "./types"
 
 export * from "./hooks/useOrderBook"
 export type { OrderbookEntry, UseOrderbookOptions, UseOrderbookReturn } from "./types"
-export {
-  FREIGHTER_WALLET_TYPE,
-  NETWORK_PASSPHRASES,
+import {
   WalletAdapterError,
-  freighterAdapter,
   getWalletAdapter,
   getWalletAdapters,
   hasWalletAdapter,
   registerWalletAdapter,
-  resolveNetworkFromPassphrase,
 } from "./wallets"
+
+export {
+  WalletAdapterError,
+  getWalletAdapter,
+  getWalletAdapters,
+  hasWalletAdapter,
+  registerWalletAdapter,
+}
+
+import { freighterAdapter } from "./wallets/freighterAdapter"
+import { albedoAdapter } from "./wallets/albedoAdapter"
+import {
+  FREIGHTER_WALLET_TYPE,
+  NETWORK_PASSPHRASES,
+  resolveNetworkFromPassphrase,
+} from "./wallets/constants"
+
+registerWalletAdapter(freighterAdapter, { override: true })
+registerWalletAdapter(albedoAdapter, { override: true })
+
+export {
+  FREIGHTER_WALLET_TYPE,
+  NETWORK_PASSPHRASES,
+  freighterAdapter,
+  resolveNetworkFromPassphrase,
+}
 
 // ── Errors ─────────────────────────────────────────────────────────────────
 export {
@@ -115,6 +155,7 @@ export type {
   NetworkConfig,
   CustomNetworkConfig,
   AutoConnectOptions,
+  SessionStorageAdapter,
   WalletType,
   WalletNetworkId,
   WalletState,
