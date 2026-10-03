@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
+import { fetchTransaction } from "../services/fetchTransaction"
 import { toStellarError } from "../errors"
 import { useQuery } from "../cache"
 import { fetchTransaction, transactionKey } from "../queries/transaction"
@@ -57,7 +58,9 @@ export function useTransaction({
     refetch,
   } = useQuery<TransactionResult>({
     queryKey,
-    queryFn: async () => fetchTransaction(networkConfig, { hash: hash!, watch }),
+queryFn: async () => {
+      return fetchTransaction(networkConfig, hash!, { watch })
+    },
     store: queryStore,
     staleTime,
     enabled: Boolean(hash),
