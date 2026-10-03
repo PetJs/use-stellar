@@ -56,6 +56,7 @@ export { usePaymentPaths } from "./hooks/usePaymentPaths"
 export { useContractEvents } from "./hooks/useContractEvents"
 export { usePathPayment } from "./hooks/usePathPayment"
 export { usePayments } from "./hooks/usePayments"
+export { useStreamPayments } from "./hooks/useStreamPayments"
 export { useTransactionHistory } from "./hooks/useTransactionHistory"
 export { usePaymentHistory } from "./hooks/usePaymentHistory"
 export { useClaimableBalance } from "./hooks/useClaimableBalance"
@@ -186,6 +187,8 @@ export type {
   StellarContextValue,
   UsePaymentsOptions,
   UsePaymentsReturn,
+  UseStreamPaymentsOptions,
+  UseStreamPaymentsReturn,
   UseTransactionHistoryOptions,
   UseTransactionHistoryReturn,
   NormalizedTransaction,

@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { useStellarContext } from "../context/StellarProvider"
+import { fetchTransaction } from "../services/fetchTransaction"
 import { toStellarError } from "../errors"
 import { useQuery } from "../cache"
 import { fetchTransaction, transactionKey } from "../queries/transaction"
@@ -46,9 +47,13 @@ export function useTransaction({
 }: UseTransactionOptions): UseTransactionReturn {
   const { network, networkConfig, queryStore } = useStellarContext()
 
-  const queryKey = hash
-    ? transactionKey(networkConfig.horizonUrl, network, hash)
-    : (["transaction", "disabled"] as const)
+  const queryKey = useMemo(
+    () =>
+      hash
+        ? transactionKey(networkConfig.horizonUrl, network, hash)
+        : (["transaction", "disabled"] as const),
+    [hash, networkConfig.horizonUrl, network]
+  )
 
   const {
     data: transaction,
@@ -57,7 +62,9 @@ export function useTransaction({
     refetch,
   } = useQuery<TransactionResult>({
     queryKey,
-    queryFn: async () => fetchTransaction(networkConfig, { hash: hash!, watch }),
+queryFn: async () => {
+      return fetchTransaction(networkConfig, hash!, { watch })
+    },
     store: queryStore,
     staleTime,
     enabled: Boolean(hash),
@@ -81,14 +88,42 @@ export function useTransaction({
   useEffect(() => {
     if (!watch || !hash) return
 
-    const id = setInterval(() => {
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(() => {
+        if (!focusManager.isFocused()) return
+        const status = transactionRef.current?.status
+        if (status === "success" || status === "failed") return
+        refetchRef.current()
+      }, 3000)
+    }
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
+      }
+      if (!focused) return
+      const entry = queryStore.getSnapshot(queryKey)
       const status = transactionRef.current?.status
-      if (status === "success" || status === "failed") return
-      refetchRef.current()
-    }, 3000)
+      if (
+        entry?.subscribers &&
+        status !== "success" &&
+        status !== "failed" &&
+        !queryStore.isLoading(queryKey) &&
+        !queryStore.isFresh(queryKey, staleTime)
+      )
+        refetchRef.current()
+      start()
+    })
 
-    return () => clearInterval(id)
-  }, [watch, hash])
+    return () => {
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
+    }
+  }, [watch, hash, queryStore, network, networkConfig.horizonUrl, staleTime, queryKey])
 
   const error = rawError ? toStellarError(rawError) : null
 

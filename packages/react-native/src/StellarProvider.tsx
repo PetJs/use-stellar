@@ -12,9 +12,10 @@
  * always-focused behavior if optional native modules are unavailable.
  */
 
-import React, { useMemo, type ReactNode } from "react"
+import React, { useEffect, useMemo, type ReactNode } from "react"
 import {
   StellarProvider as CoreStellarProvider,
+  registerWalletAdapter,
   type StellarProviderProps as CoreStellarProviderProps,
 } from "use-stellar"
 import type {
@@ -27,6 +28,7 @@ import type { Storage } from "./platform/asyncStorageSession"
 import { createAsyncStorageAdapter } from "./platform/asyncStorageSession"
 import { createAppStateFocusManager } from "./platform/appStateFocus"
 import { createNetInfoOnlineManager } from "./platform/netInfoOnline"
+import type { ReactNativeWalletConnectOptions } from "./wallets/walletConnect"
 
 /**
  * Props accepted by the React Native StellarProvider.
@@ -79,6 +81,12 @@ export interface NativeStellarProviderProps extends Omit<CoreStellarProviderProp
    * development, helping catch misconfigured environments.
    */
   warnOnFallback?: boolean
+
+  /**
+   * Enables WalletConnect v2 for compatible Stellar mobile wallets. No
+   * WalletConnect modules are loaded unless this option and projectId exist.
+   */
+  walletConnect?: ReactNativeWalletConnectOptions
 }
 
 /**
@@ -186,6 +194,7 @@ export function StellarProvider({
   focusManager,
   onlineManager,
   warnOnFallback = true,
+  walletConnect,
 }: NativeStellarProviderProps) {
   // Determine the storage backend for autoConnect sessions
   const resolvedStorage = useMemo(() => {
@@ -214,6 +223,24 @@ export function StellarProvider({
 
     return asyncStorage
   }, [storage, warnOnFallback])
+
+  // Register only when explicitly configured. The core adapter loads its
+  // SignClient lazily on connect, so merely mounting this provider makes no
+  // WalletConnect network requests.
+  useEffect(() => {
+    if (!walletConnect?.projectId?.trim()) return
+
+    // Keep the optional integration out of the module load path until an app
+    // explicitly supplies a WalletConnect project ID.
+    // eslint-disable-next-line global-require
+    const { createReactNativeWalletConnectAdapter } =
+      require("./wallets/walletConnect") as typeof import("./wallets/walletConnect")
+    const adapter = createReactNativeWalletConnectAdapter({
+      ...walletConnect,
+      storage: walletConnect.storage ?? resolvedStorage,
+    })
+    registerWalletAdapter(adapter, { override: true })
+  }, [walletConnect, resolvedStorage])
 
   // Determine the focus manager
   const resolvedFocusManager = useMemo(() => {

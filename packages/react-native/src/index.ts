@@ -1,8 +1,3 @@
-// Stellar React Native SDK - Main entry point
-// Re-exports all public APIs from use-stellar for React Native apps.
-// NOTE: Does NOT import polyfills. Apps must explicitly import:
-//   import '@use-stellar/react-native/polyfills'
-
 /**
  * @use-stellar/react-native
  *

@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "dev": "pnpm build:lib && pnpm --filter @use-stellar/demo dev",
+    "dev:vue": "pnpm --filter use-stellar build && pnpm --filter @use-stellar/vue build && pnpm --filter @use-stellar/vue-demo dev",
     "build": "pnpm build:lib && pnpm --filter @use-stellar/demo build",
+    "build:vue-demo": "pnpm --filter @use-stellar/vue-demo... build",
     "build:lib": "pnpm --filter use-stellar build && pnpm --filter @use-stellar/react-native build",
     "size": "pnpm --filter use-stellar size",
     "size:why": "pnpm --filter use-stellar size:why",

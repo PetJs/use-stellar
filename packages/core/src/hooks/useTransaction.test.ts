@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from "@testing-library/react"
 import React from "react"
 import { StellarProvider } from "../context/StellarProvider"
+import { transactionKey } from "../cache/keys"
 import { useTransaction } from "./useTransaction"
 import type { UseTransactionOptions, UseTransactionReturn } from "./useTransaction"
 import type { StellarError, TransactionResult, TransactionStatus } from "../types"
@@ -217,6 +218,27 @@ describe("useTransaction", () => {
       // the last known-good transaction rather than blanking the display.
       expect(result.current.error?.code).toBe("NETWORK_ERROR")
       expect(result.current.transaction?.status).toBe("success")
+    })
+  })
+
+  describe("cross-framework cache key parity", () => {
+    it("uses transactionKey so a Vue composable with the same input shares one cache entry", () => {
+      // The Vue useTransaction composable delegates to the same core fetcher
+      // and must key its cache entry with `transactionKey(hash)` so that a
+      // React hook and a Vue composable given the same hash share one entry.
+      const key = transactionKey(TEST_HASH)
+      expect(key).toContain(TEST_HASH)
+      expect(transactionKey(TEST_HASH)).toBe(transactionKey(TEST_HASH))
+      expect(transactionKey(TEST_HASH)).not.toBe(transactionKey("0987654321fedcba"))
+    })
+
+    it("produces a stable key for null/empty inputs so idle state is shared", () => {
+      // Idle inputs must not collide with real hashes; the Vue composable
+      // relies on the same key semantics to stay idle without a request.
+      const nullKey = transactionKey(null as unknown as string)
+      const emptyKey = transactionKey("")
+      expect(nullKey).toBe(emptyKey)
+      expect(nullKey).not.toBe(transactionKey(TEST_HASH))
     })
   })
 

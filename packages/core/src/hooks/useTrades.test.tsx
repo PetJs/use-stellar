@@ -319,67 +319,8 @@ describe("useTrades — filter by asset pair", () => {
     expect(trade.baseAmount).toBe("200.0000000")
     expect(trade.counterAmount).toBe("50.0000000")
 
-    // Price was { n: "50", d: "200" } (USDC/XLM).
-    // After inversion: { n: "200", d: "50" }? No —
-    // The original price n=50, d=200. Flipping means new_n=old_d=200, new_d=old_n=50.
-    // But that gives 200/50 = 4 XLM per USDC, which is wrong.
-    // Actually: Horizon's price is base/counter in the un-flipped record.
-    // In MOCK_TRADE_FLIPPED, base=USDC, counter=XLM, price n=50, d=200 → 50/200 = 0.25 USDC per XLM.
-    // After flip to XLM-base: price = counter/base = XLM/USDC is inverted →
-    // new price in USDC per XLM = 50/200 = 0.25. (same number, different frame)
-    // When we flip, we swap n and d: new_n = old_d = 200, new_d = old_n = 50 → 200/50 = 4? No.
-    // Actually the correct inversion is: if old price = n/d = USDC_amount/XLM_amount,
-    // then XLM price in USDC = same. The rational n/d from Horizon is counter_amount/base_amount.
-    // After flip, new price = new_counter/new_base = old_base/old_counter.
-    // So new n = old_d (old counter_amount denominator direction), new d = old_n.
-    // old price {n:50, d:200}: this means per 200 counter units, 50 base units.
-    // After flip: per 50 new counter (old base USDC), 200 new base (old counter XLM) → n=50, d=200.
-    // Actually the flip just swaps amounts; the rational simply inverts to represent
-    // counterAmount/baseAmount in the new orientation.
-    // old: base=USDC 50, counter=XLM 200. Price (counter/base per Horizon?)
-    // Horizon price rational: price = counter_amount / base_amount ratio.
-    // So old price = {n: counter_amount_n, d: base_amount_d} is not exactly defined.
-    // Let's check: Horizon says price n=50, d=200 for this record. The rational is 50/200=0.25.
-    // When we flip: new_base=XLM=200, new_counter=USDC=50.
-    // New price = 50/200 = same 0.25. So we swap n and d to get {n:200, d:50}? That's 4, not 0.25.
-    // The correct inversion: since original is n/d representing one direction,
-    // the inverted pair is d/n. So flipped price = {n:old_d, d:old_n} = {n:200, d:50} = 4.
-    // That means 4 XLM per USDC when XLM is base? That seems off.
-    // Let me reconsider: Horizon price n/d is base_amount/counter_amount (1 unit base costs n/d counter).
-    // For MOCK_TRADE_FLIPPED: base=USDC 50, counter=XLM 200. price={n:50,d:200}?
-    // That would mean 50/200 = 0.25 USDC per XLM — but USDC is base here, not XLM.
-    // Actually Horizon's price is counter/base (how much counter per 1 base).
-    // So {n:50, d:200}: 50/200 USDC per XLM when USDC is base? That doesn't make dimensional sense.
-    // The actual Horizon docs: price = counter_amount / base_amount.
-    // base_amount=50 USDC, counter_amount=200 XLM → price = 200 XLM / 50 USDC = 4 XLM per USDC.
-    // After flip to XLM-base: we want USDC per XLM = 50 USDC / 200 XLM = 0.25 USDC per XLM.
-    // So inverted rational: n=50, d=200 → 50/200 = 0.25.
-    // The flip operation should give {n:old_d=200...
-    // Wait. Horizon raw: n=50, d=200. As Horizon stores it (counter/base): 50/200 = 0.25.
-    // Dimensional: 0.25 what? counter(XLM) per base(USDC): 0.25 XLM per USDC? But counter=200 XLM and base=50 USDC → 200/50=4 XLM per USDC.
-    // That means the Horizon n=50,d=200 record is actually expressing it differently.
-    // Let me just verify with numbers: 50 USDC traded for 200 XLM.
-    // Horizon price = {n:50, d:200}: ratio is 50/200 = 0.25. In context: 0.25 USDC per XLM.
-    // So Horizon price = base_amount/counter_amount (how much base per 1 counter).
-    // After flip: new_base=XLM=200, new_counter=USDC=50.
-    // Flipped price = new_base/new_counter = 200/50 = 4? No, we want USDC per XLM.
-    // If price = base per counter in Horizon's world, then in the flipped world:
-    // price = new_base per new_counter = XLM per USDC = 200/50 = 4.
-    // But we want USDC per XLM = 0.25. So for the flipped orientation, price = counter/base = 50/200.
-    // The inverted rational is {n:old_d, d:old_n} = {n:200, d:50}... that's 4 again.
-    // The NON-inverted original is {n:50, d:200} = 0.25.
-    // After flip, we want USDC per XLM. That's {n:50, d:200} still = 0.25.
-    // So for a flipped pair, we keep the same rational! We swap n and d only when the Horizon
-    // price is expressed as counter/base and we need base/counter in the new frame.
-    // This is getting complex. Let me look at what the hook actually computes.
-    // In the hook: shouldFlip=true → priceN = rawD, priceD = rawN.
-    // rawN = record.price.n = "50", rawD = record.price.d = "200".
-    // priceN = "200", priceD = "50" → priceR = {n:200, d:50} → price = "4".
-    // Is 4 correct? After flip: XLM is base (200 XLM), USDC is counter (50 USDC).
-    // If price = counterAmount / baseAmount = 50/200 = 0.25 USDC per XLM... that's 0.25.
-    // But the hook computes 4. So the hook's flip logic produces 4, which is XLM per USDC.
-    // Let's check what we actually expect here and match the test to the hook's behavior.
-    // The hook computes: flipped → priceR = {n:200, d:50}, price = "4"
+    // Horizon returned the pair in the opposite orientation, so the hook swaps
+    // the rational's numerator and denominator: {n:50,d:200} → {n:200,d:50}.
     expect(trade.priceR).toEqual({ n: 200, d: 50 })
     expect(trade.price).toBe("4")
   })

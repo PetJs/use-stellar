@@ -6,6 +6,7 @@ import { asFeeSource, resolveFee } from "../utils/fees"
 import { getWalletAdapter } from "../wallets"
 import { createStellarError, toStellarError } from "../errors"
 import { accountKey } from "../cache"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type {
   Asset,
   PathPaymentOptions,
@@ -223,6 +224,9 @@ export function usePathPayment(): UsePathPaymentReturn {
       }
 
       assertValidOptions(options)
+
+      // Fail fast offline — a signed payment is never queued for later.
+      if (!onlineManager.isOnline()) throw offlineError()
 
       setLoading(true)
       setError(null)
