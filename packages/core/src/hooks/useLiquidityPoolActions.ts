@@ -5,6 +5,7 @@ import { getHorizonServer, isBrowser } from "../utils"
 import { asFeeSource, resolveFee } from "../utils/fees"
 import { getWalletAdapter } from "../wallets"
 import { createStellarError, toStellarError, toSubmissionError } from "../errors"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type { FeeOptions, StellarError, TransactionResult } from "../types"
 
 export interface LiquidityPoolDepositOptions extends FeeOptions {
@@ -56,6 +57,12 @@ export function useLiquidityPoolActions() {
           'Move your component to a "use client" boundary in Next.js / Remix.'
       )
       setError(err)
+      return null
+    }
+
+    // Fail fast offline — a signed transaction is never queued for later.
+    if (!onlineManager.isOnline()) {
+      setError(offlineError())
       return null
     }
 

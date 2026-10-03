@@ -3,6 +3,7 @@ import { useStellarContext } from "../context/StellarProvider"
 import { canSignTransactions } from "../utils"
 import { createStellarError } from "../errors"
 import { sendPayment, SendPaymentAbortedError, isPreflightError } from "../actions/sendPayment"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type { SendPaymentOptions, SendPaymentResult, StellarError } from "../types"
 
 export interface UseSendPaymentReturn {
@@ -73,6 +74,9 @@ export function useSendPayment(): UseSendPaymentReturn {
             `Switch your wallet to ${wallet.network} or call refreshWalletNetwork() to update.`
         )
       }
+
+      // Fail fast offline — a signed payment is never queued for later.
+      if (!onlineManager.isOnline()) throw offlineError()
 
       setLoading(true)
       setError(null)

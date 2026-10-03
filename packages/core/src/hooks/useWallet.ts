@@ -54,7 +54,6 @@ export function useWallet(): UseWalletReturn {
   // watcher tick can never call setWallet on an unmounted component.
   const mountedRef = useRef(true)
   const [restoredWallet, setRestoredWallet] = useState<WalletType | null>(null)
-  const restoredWalletRef = useRef<WalletType | null>(null)
 
   const safeSetWallet = useCallback(
     (update: React.SetStateAction<WalletState>) => {
@@ -116,7 +115,6 @@ export function useWallet(): UseWalletReturn {
           ...walletNetwork,
         })
 
-        restoredWalletRef.current = null
         setRestoredWallet(null)
 
         if (autoConnect.enabled) {
@@ -153,7 +151,6 @@ export function useWallet(): UseWalletReturn {
       }
     }
 
-    restoredWalletRef.current = null
     setRestoredWallet(null)
     void writeWalletSession(autoConnect.storage, null)
 
@@ -214,7 +211,6 @@ export function useWallet(): UseWalletReturn {
         if (!available) {
           // The extension is gone. Keep the stored intent so the user can
           // reinstall and pick up where they left off.
-          restoredWalletRef.current = session.wallet
           setRestoredWallet(session.wallet)
           return
         }
@@ -223,7 +219,6 @@ export function useWallet(): UseWalletReturn {
         if (cancelled || !mountedRef.current) return
 
         if (!silent) {
-          restoredWalletRef.current = session.wallet
           setRestoredWallet(session.wallet)
           safeSetWallet(prev => ({
             ...prev,

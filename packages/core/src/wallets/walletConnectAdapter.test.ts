@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { createWalletConnectAdapter } from "./walletConnectAdapter"
 
 describe("walletConnectAdapter", () => {

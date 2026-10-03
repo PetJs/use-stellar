@@ -48,14 +48,18 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
   const amount = (sourceAmount ?? destinationAmount ?? "") as string
   const addressFilter = destinationAddress ?? sourceAddress
 
-  const queryKey = paymentPathsKey(
-    networkConfig.horizonUrl,
-    network,
-    mode,
-    sourceKey,
-    destinationKey,
-    amount,
-    addressFilter
+  const queryKey = useMemo(
+    () =>
+      paymentPathsKey(
+        networkConfig.horizonUrl,
+        network,
+        mode,
+        sourceKey,
+        destinationKey,
+        amount,
+        addressFilter
+      ),
+    [networkConfig.horizonUrl, network, mode, sourceKey, destinationKey, amount, addressFilter]
   )
 
   const {
@@ -78,17 +82,30 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
   useEffect(() => {
     if (!enabled || !watch) return
     const ms = interval > 0 ? interval : DEFAULT_WATCH_INTERVAL
-    // Quotes nobody can see only spend Horizon quota: skip ticks while the app
-    // is in the background, and refresh once when it comes back.
-    const id = setInterval(() => {
-      if (focusManager.isFocused()) refetchRef.current()
-    }, ms)
-    const unsubscribe = focusManager.subscribe(focused => {
-      if (focused) refetchRef.current()
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(() => {
+        if (focusManager.isFocused()) refetchRef.current()
+      }, ms)
+    }
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
+      }
+      if (!focused) return
+      const entry = queryStore.getSnapshot(queryKey)
+      if (entry?.subscribers && !queryStore.isLoading(queryKey) && !queryStore.isFresh(queryKey)) {
+        refetchRef.current()
+      }
+      start()
     })
     return () => {
-      clearInterval(id)
-      unsubscribe()
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
     }
   }, [
     enabled,
@@ -100,6 +117,8 @@ export function usePaymentPaths(options: UsePaymentPathsOptions): UsePaymentPath
     addressFilter,
     network,
     networkConfig.horizonUrl,
+    queryStore,
+    queryKey,
   ])
 
   const error = rawError ? toStellarError(rawError) : null

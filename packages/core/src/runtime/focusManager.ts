@@ -1,122 +1,92 @@
-/** Called with the new focus state whenever it changes. */
+/** Runtime focus state shared by polling hooks. */
+export type FocusPlatform = "web" | "server" | "native"
+
 export type FocusListener = (focused: boolean) => void
 
-/**
- * Wires a platform's focus signal into the manager. Receives a `setFocused`
- * callback to report changes and may return a cleanup function that detaches
- * whatever it attached.
- *
- * The web default listens to `visibilitychange` on `document`. React Native
- * replaces it with an AppState-backed signal from `@use-stellar/react-native`
- * — core never imports `react-native` itself.
- */
-export type FocusEventSetup = (setFocused: (focused: boolean) => void) => (() => void) | void
-
-/**
- * The web default: `document`'s `visibilitychange` event.
- *
- * Attaches nothing where there is no `document` — a server render or a native
- * app has no page visibility to track and is treated as focused until a
- * platform reports otherwise.
- */
-const webFocusEvents: FocusEventSetup = setFocused => {
-  if (typeof document === "undefined" || typeof document.addEventListener !== "function") return
-
-  const handleChange = () => setFocused(document.visibilityState !== "hidden")
-  document.addEventListener("visibilitychange", handleChange, false)
-
-  return () => {
-    document.removeEventListener("visibilitychange", handleChange)
-  }
+export interface FocusManagerOptions {
+  platform?: FocusPlatform
+  document?: Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">
 }
 
 /**
- * Tracks whether the app is in the foreground, so polling hooks can stop
- * spending quota while nobody is looking and catch up when the user returns.
- *
- * Framework-neutral: no React, no React Native. A platform supplies its signal
- * through {@link FocusManager.setEventListener}; until it does, the web default
- * is used.
+ * Owns focus state without depending on a UI framework or a native runtime.
+ * Native adapters can call `setFocused` when their app state changes.
  */
 export class FocusManager {
-  /** `undefined` until a platform reports a state — then `document` is read. */
-  private focused: boolean | undefined
-  private listeners = new Set<FocusListener>()
-  private setup: FocusEventSetup = webFocusEvents
-  private cleanup: (() => void) | void = undefined
+  private platform: FocusPlatform
+  private readonly doc?: FocusManagerOptions["document"]
+  private readonly listeners = new Set<FocusListener>()
+  private focused: boolean
+  private listening = false
 
-  /**
-   * Returns `false` only when the platform says the app is in the background.
-   * Environments with no signal at all (SSR, tests) are treated as focused.
-   */
+  constructor(options: FocusManagerOptions = {}) {
+    this.doc = options.document ?? (typeof document === "undefined" ? undefined : document)
+    this.platform = options.platform ?? (this.doc ? "web" : "server")
+    this.focused =
+      this.platform === "server" ||
+      (this.platform === "web" ? this.doc?.visibilityState !== "hidden" : true)
+  }
+
   isFocused(): boolean {
-    if (this.focused !== undefined) return this.focused
-    if (typeof document !== "undefined" && typeof document.visibilityState === "string") {
-      return document.visibilityState !== "hidden"
-    }
-    return true
+    return this.platform === "server" || this.focused
   }
 
   /**
-   * Records a focus change. Listeners are notified only when the value
-   * actually changes, so a repeated "active" event cannot trigger a second
-   * round of refetches.
-   */
-  setFocused(focused: boolean): void {
-    const previous = this.isFocused()
-    this.focused = focused
-    if (previous === focused) return
-
-    for (const listener of this.listeners) {
-      listener(focused)
-    }
-  }
-
-  /**
-   * Subscribes to focus changes. The platform signal is attached with the
-   * first subscriber and detached with the last, so an app that never polls
-   * never registers a listener.
+   * Registers a listener. Subscriptions are kept even on a server platform,
+   * which never emits: a hook can subscribe before a native adapter calls
+   * `setPlatform("native")` (React runs child effects first), and that
+   * subscription must still hear AppState changes afterwards.
    */
   subscribe(listener: FocusListener): () => void {
     this.listeners.add(listener)
-    if (this.listeners.size === 1) this.attach()
-
+    this.startListening()
+    let subscribed = true
     return () => {
+      if (!subscribed) return
+      subscribed = false
       this.listeners.delete(listener)
-      if (this.listeners.size === 0) this.detach()
+      if (this.listeners.size === 0) this.stopListening()
     }
   }
 
-  /**
-   * Replaces the platform signal. Detaches the current one and, if anything is
-   * subscribed, attaches the new one immediately. Pass nothing to restore the
-   * web default.
-   *
-   * Any state the previous signal reported is dropped, so a signal that is
-   * removed cannot leave the app stuck "in the background".
-   */
-  setEventListener(setup: FocusEventSetup = webFocusEvents): void {
-    this.detach()
-    this.setup = setup
-    if (this.listeners.size > 0) this.attach()
+  /** Set focus directly, for native adapters and deterministic tests. */
+  setFocused(focused: boolean): void {
+    if (this.platform === "server" || this.focused === focused) return
+    this.focused = focused
+    this.listeners.forEach(listener => listener(focused))
   }
 
-  private attach(): void {
-    // Snapshot the state the signal starts from. A web `visibilitychange`
-    // fires after `document.visibilityState` has already changed, so reading
-    // it live would make the first change look like no change at all.
-    this.focused = this.isFocused()
-    this.cleanup = this.setup(focused => this.setFocused(focused))
+  /** Configure the runtime after platform capabilities become available. */
+  setPlatform(platform: FocusPlatform): void {
+    if (this.platform === platform) return
+    this.stopListening()
+    this.platform = platform
+    const nextFocused =
+      platform === "server" ||
+      (platform === "web" ? this.doc?.visibilityState !== "hidden" : this.focused)
+    this.focused = nextFocused
+    if (platform !== "server") {
+      this.startListening()
+      if (this.listeners.size > 0) this.listeners.forEach(listener => listener(nextFocused))
+    }
   }
 
-  private detach(): void {
-    if (typeof this.cleanup === "function") this.cleanup()
-    this.cleanup = undefined
-    // Nothing reports changes any more, so a remembered state could only go
-    // stale. Fall back to reading the platform until the next attach.
-    this.focused = undefined
+  private readonly onVisibilityChange = (): void => {
+    if (this.platform === "web") this.setFocused(this.doc?.visibilityState !== "hidden")
+  }
+
+  private startListening(): void {
+    if (this.listening || this.platform !== "web" || !this.doc) return
+    this.doc.addEventListener("visibilitychange", this.onVisibilityChange)
+    this.listening = true
+  }
+
+  private stopListening(): void {
+    if (!this.listening || !this.doc) return
+    this.doc.removeEventListener("visibilitychange", this.onVisibilityChange)
+    this.listening = false
   }
 }
 
-/** The shared manager every polling hook consults. */
+/** Default environment manager: visible web pages are focused; SSR is always focused. */
 export const focusManager = new FocusManager()

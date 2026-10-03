@@ -184,19 +184,19 @@ To test your application locally, you will need the Freighter browser wallet set
 
 Here are solutions to common integration and runtime errors:
 
-| Error / Issue                               | Probable Cause                                                                                                       | Solution                                                                                                                                                                                                                                                                |
-| :------------------------------------------ | :------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Freighter wallet not found. Install...`    | The Freighter browser extension is missing or disabled in your browser.                                              | Install the extension from [freighter.app](https://www.freighter.app) and ensure it is active.                                                                                                                                                                          |
-| `Wrong network. Switch Freighter to...`     | Freighter is set to Mainnet (or another network) while `StellarProvider` is configured to `testnet` (or vice versa). | Open Freighter settings, select **Preferences** -> **Active Network**, and select the network configured in `StellarProvider`.                                                                                                                                          |
-| `Failed to fetch balance`                   | The Stellar address has not been funded yet and does not exist on the ledger.                                        | Use the [Stellar Lab Friendbot](https://laboratory.stellar.org/#friendbot) to fund the address with testnet XLM before attempting to read its balance.                                                                                                                  |
-| `Transaction failed` (e.g., during payment) | Insufficient balance, invalid destination address, missing asset trustline, or network timeout.                      | 1. Ensure the sender has enough XLM to cover the payment amount and the base transaction fee (0.00001 XLM).<br>2. Confirm the destination address is valid and exists on the active network.<br>3. Check developer console logs for the specific transaction error XDR. |
-| Error / Issue | Probable Cause | Solution |
-| :--- | :--- | :--- |
-| `Freighter wallet not found. Install...` | The Freighter browser extension is missing or disabled in your browser. | Install the extension from [freighter.app](https://www.freighter.app) and ensure it is active. |
-| `Wrong network. Switch Freighter to...` | Freighter is set to Mainnet (or another network) while `StellarProvider` is configured to `testnet` (or vice versa). | Open Freighter settings, select **Preferences** -> **Active Network**, and select the network configured in `StellarProvider`. |
-| `Failed to fetch balance` | The Stellar address has not been funded yet and does not exist on the ledger. | Use the [Stellar Lab Friendbot](https://laboratory.stellar.org/#friendbot) to fund the address with testnet XLM before attempting to read its balance. |
-| `Transaction failed` (e.g., during payment) | Insufficient balance, invalid destination address, missing asset trustline, or network timeout. | 1. Ensure the sender has enough XLM to cover the payment amount and the base transaction fee (0.00001 XLM).<br>2. Confirm the destination address is valid and exists on the active network.<br>3. Check developer console logs for the specific transaction error XDR. |
-| `TX_TIMEOUT` (HTTP 504 Gateway Timeout) | Horizon timed out waiting for ledger inclusion, but the transaction may still succeed. | The error includes a transaction hash. Poll `useTransaction(hash)` to check the actual status. Never rebuild and resubmit — the original transaction may have landed. See [useSendPayment docs](docs/hooks/use-send-payment.md#what-to-do-on-timeout-http-504) for a worked example. |
+| Error / Issue                               | Probable Cause                                                                                                       | Solution                                                                                                                                                                                                                                                                             |
+| :------------------------------------------ | :------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Freighter wallet not found. Install...`    | The Freighter browser extension is missing or disabled in your browser.                                              | Install the extension from [freighter.app](https://www.freighter.app) and ensure it is active.                                                                                                                                                                                       |
+| `Wrong network. Switch Freighter to...`     | Freighter is set to Mainnet (or another network) while `StellarProvider` is configured to `testnet` (or vice versa). | Open Freighter settings, select **Preferences** -> **Active Network**, and select the network configured in `StellarProvider`.                                                                                                                                                       |
+| `Failed to fetch balance`                   | The Stellar address has not been funded yet and does not exist on the ledger.                                        | Use the [Stellar Lab Friendbot](https://laboratory.stellar.org/#friendbot) to fund the address with testnet XLM before attempting to read its balance.                                                                                                                               |
+| `Transaction failed` (e.g., during payment) | Insufficient balance, invalid destination address, missing asset trustline, or network timeout.                      | 1. Ensure the sender has enough XLM to cover the payment amount and the base transaction fee (0.00001 XLM).<br>2. Confirm the destination address is valid and exists on the active network.<br>3. Check developer console logs for the specific transaction error XDR.              |
+| Error / Issue                               | Probable Cause                                                                                                       | Solution                                                                                                                                                                                                                                                                             |
+| :---                                        | :---                                                                                                                 | :---                                                                                                                                                                                                                                                                                 |
+| `Freighter wallet not found. Install...`    | The Freighter browser extension is missing or disabled in your browser.                                              | Install the extension from [freighter.app](https://www.freighter.app) and ensure it is active.                                                                                                                                                                                       |
+| `Wrong network. Switch Freighter to...`     | Freighter is set to Mainnet (or another network) while `StellarProvider` is configured to `testnet` (or vice versa). | Open Freighter settings, select **Preferences** -> **Active Network**, and select the network configured in `StellarProvider`.                                                                                                                                                       |
+| `Failed to fetch balance`                   | The Stellar address has not been funded yet and does not exist on the ledger.                                        | Use the [Stellar Lab Friendbot](https://laboratory.stellar.org/#friendbot) to fund the address with testnet XLM before attempting to read its balance.                                                                                                                               |
+| `Transaction failed` (e.g., during payment) | Insufficient balance, invalid destination address, missing asset trustline, or network timeout.                      | 1. Ensure the sender has enough XLM to cover the payment amount and the base transaction fee (0.00001 XLM).<br>2. Confirm the destination address is valid and exists on the active network.<br>3. Check developer console logs for the specific transaction error XDR.              |
+| `TX_TIMEOUT` (HTTP 504 Gateway Timeout)     | Horizon timed out waiting for ledger inclusion, but the transaction may still succeed.                               | The error includes a transaction hash. Poll `useTransaction(hash)` to check the actual status. Never rebuild and resubmit — the original transaction may have landed. See [useSendPayment docs](docs/hooks/use-send-payment.md#what-to-do-on-timeout-http-504) for a worked example. |
 
 ---
 
@@ -204,25 +204,25 @@ Here are solutions to common integration and runtime errors:
 
 ### Wallet and network
 
-| Hook              | Description                                                                            |
-| ----------------- | -------------------------------------------------------------------------------------- |
-| `useWallet`       | Connect / disconnect a wallet, expose address, network, and network-mismatch detection |
-| `useNetwork`      | Current network, Horizon and Soroban RPC URLs, and the active network passphrase       |
+| Hook         | Description                                                                            |
+| ------------ | -------------------------------------------------------------------------------------- |
+| `useWallet`  | Connect / disconnect a wallet, expose address, network, and network-mismatch detection |
+| `useNetwork` | Current network, Horizon and Soroban RPC URLs, and the active network passphrase       |
 
 ### Reading account state
 
-| Hook                  | Description                                                             |
-| --------------------- | ------------------------------------------------------------------------- |
-| `useBalance`          | XLM or any asset balance for an address, with optional polling          |
-| `useAccount`          | Full account info — balances, sequence, signers, thresholds             |
-| `useAccountExists`    | Whether an account is funded on the network, without throwing on a 404  |
-| `useAsset`            | Asset metadata — supply, issuer, home domain, flags                     |
-| `useClaimableBalance` | Claimable balances available to an account                              |
+| Hook                  | Description                                                            |
+| --------------------- | ---------------------------------------------------------------------- |
+| `useBalance`          | XLM or any asset balance for an address, with optional polling         |
+| `useAccount`          | Full account info — balances, sequence, signers, thresholds            |
+| `useAccountExists`    | Whether an account is funded on the network, without throwing on a 404 |
+| `useAsset`            | Asset metadata — supply, issuer, home domain, flags                    |
+| `useClaimableBalance` | Claimable balances available to an account                             |
 
 ### History
 
 | Hook                    | Description                                                       |
-| ----------------------- | ------------------------------------------------------------------- |
+| ----------------------- | ----------------------------------------------------------------- |
 | `usePayments`           | Paginated payment history for an account                          |
 | `usePaymentHistory`     | Payment history with server-side filtering by asset and direction |
 | `useTransactionHistory` | Paginated transaction history for an account                      |
@@ -231,21 +231,21 @@ Here are solutions to common integration and runtime errors:
 
 ### Moving value
 
-| Hook              | Description                                                                |
-| ----------------- | ---------------------------------------------------------------------------- |
-| `useSendPayment`  | Send XLM or any issued asset — builds, signs, and submits                  |
-| `useAddTrustline` | Open a trustline to an issued asset                                        |
-| `usePaymentPaths` | Quote a conversion: discover strict-send / strict-receive paths and rates  |
-| `usePathPayment`  | Execute a path payment — Stellar's built-in swap, with a slippage bound    |
+| Hook              | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| `useSendPayment`  | Send XLM or any issued asset — builds, signs, and submits                 |
+| `useAddTrustline` | Open a trustline to an issued asset                                       |
+| `usePaymentPaths` | Quote a conversion: discover strict-send / strict-receive paths and rates |
+| `usePathPayment`  | Execute a path payment — Stellar's built-in swap, with a slippage bound   |
 
 ### Soroban and anchors
 
-| Hook                   | Description                                                       |
-| ---------------------- | ------------------------------------------------------------------- |
-| `useSorobanContract`   | Simulate a read call on any deployed Soroban contract             |
-| `useContractEvents`    | Read events emitted by a Soroban contract                         |
-| `useAnchor`            | Resolve an anchor's `stellar.toml` (SEP-1) from a home domain     |
-| `useFederationLookup`  | Resolve a federated address (`name*domain.com`) to an account ID  |
+| Hook                  | Description                                                      |
+| --------------------- | ---------------------------------------------------------------- |
+| `useSorobanContract`  | Simulate a read call on any deployed Soroban contract            |
+| `useContractEvents`   | Read events emitted by a Soroban contract                        |
+| `useAnchor`           | Resolve an anchor's `stellar.toml` (SEP-1) from a home domain    |
+| `useFederationLookup` | Resolve a federated address (`name*domain.com`) to an account ID |
 
 ---
 
@@ -570,12 +570,12 @@ import { StellarProvider } from "use-stellar"
 </StellarProvider>
 ```
 
-| Prop            | Type                                                   | Default     | Description                                                                                            |
-| --------------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------ |
-| `network`       | `"testnet" \| "mainnet" \| "futurenet" \| "custom"`      | `"testnet"` | Which network to talk to. The first three ship SDF endpoints and a passphrase; `"custom"` ships none.  |
-| `networkConfig` | `CustomNetworkConfig`                                  | —           | Override `horizonUrl` and `sorobanUrl` (both required together), and optionally `networkPassphrase`.   |
-| `queryConfig`   | `{ staleTime?: number; gcTime?: number }`              | see below   | Cache timings, in milliseconds. Defaults: `staleTime` 30 000, `gcTime` 300 000.                        |
-| `autoConnect`   | `boolean \| AutoConnectOptions`                        | `false`     | Restore the previous wallet session on mount, without ever popping an approval dialog on page load.    |
+| Prop            | Type                                                | Default     | Description                                                                                           |
+| --------------- | --------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------- |
+| `network`       | `"testnet" \| "mainnet" \| "futurenet" \| "custom"` | `"testnet"` | Which network to talk to. The first three ship SDF endpoints and a passphrase; `"custom"` ships none. |
+| `networkConfig` | `CustomNetworkConfig`                               | —           | Override `horizonUrl` and `sorobanUrl` (both required together), and optionally `networkPassphrase`.  |
+| `queryConfig`   | `{ staleTime?: number; gcTime?: number }`           | see below   | Cache timings, in milliseconds. Defaults: `staleTime` 30 000, `gcTime` 300 000.                       |
+| `autoConnect`   | `boolean \| AutoConnectOptions`                     | `false`     | Restore the previous wallet session on mount, without ever popping an approval dialog on page load.   |
 
 ### A private or local node
 
@@ -628,7 +628,7 @@ ledger. Override per call:
 
 ```ts
 await send({ to, asset: "XLM", amount: "10", feeMultiplier: 50 }) // bid harder
-await send({ to, asset: "XLM", amount: "10", fee: "100000" })     // pin exactly
+await send({ to, asset: "XLM", amount: "10", fee: "100000" }) // pin exactly
 ```
 
 ---
@@ -720,9 +720,16 @@ use-stellar/
 │   │       ├── context/      ← StellarProvider
 │   │       ├── types/        ← all TypeScript types
 │   │       └── utils/        ← shared helpers
+│   ├── vue/        ← Vue 3 composables (published as @use-stellar/vue, no React dependency)
 │   └── demo/       ← Next.js demo app (live at use-stellar.dev)
 └── .github/        ← CI, issue templates
 ```
+
+### Using Vue instead of React?
+
+See the [Vue guide](docs/guides/vue.md) — `@use-stellar/vue` is a separate
+package with the same design (one shared cache, one plugin) and no React in
+its dependency tree.
 
 ---
 
@@ -751,6 +758,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md). All contributions welcome — new hook
 - [ ] `useTrustline` — add / remove trustlines
 - [ ] Soroban write calls (signed contract invocations)
 - [ ] React Native support
+- [x] `@use-stellar/vue` — Vue 3 adapter (early: `useBalance` only so far)
 
 ---
 

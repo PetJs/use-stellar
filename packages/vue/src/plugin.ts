@@ -1,97 +1,87 @@
-import type { App, InjectionKey, Plugin } from "vue"
-import type { WalletAdapter } from "@stellar-wallet-kit/core"
-import { WALLET_KEY } from "./useWallet"
+// packages/vue/src/plugin.ts
 
-export interface WalletPluginOptions {
-  adapters: WalletAdapter[]
-  /**
-   * When true, the plugin will attempt to restore a previous wallet session
-   * on mount. Silent-capable adapters reconnect automatically; prompting
-   * adapters only restore intent and populate `restoredWallet`.
-   */
-  autoConnect?: boolean
-  /**
-   * When true, the public address of the connected wallet is persisted
-   * alongside the wallet type. Never persists secret material.
-   */
-  persistAddress?: boolean
+import { inject, type App, type InjectionKey } from "vue"
+import { VueQueryStore, type QueryStoreConfig } from "./store"
+import { NETWORK_CONFIGS, type NetworkConfig, type StellarNetwork } from "./types"
+
+export interface StellarPluginOptions {
+  /** Defaults to `"testnet"`. */
+  network?: StellarNetwork
+  /** Override the built-in Horizon/Soroban endpoints for `network`. Any field left out keeps the default. */
+  networkConfig?: Partial<Pick<NetworkConfig, "horizonUrl" | "sorobanUrl" | "networkPassphrase">>
+  /** Cache configuration shared by every composable. */
+  queryConfig?: QueryStoreConfig
 }
 
-export const WALLET_PORT_KEY: InjectionKey<WalletPluginOptions> = Symbol("stellar-wallet-options")
-
-export const WalletPlugin: Plugin = {
-  install(app: App, options: WalletPluginOptions) {
-    app.provide(WALLET_PORT_KEY, options)
-    app.provide(WALLET_KEY, options.adapters)
-  },
+export interface StellarRuntime {
+  network: StellarNetwork
+  networkConfig: NetworkConfig
+  queryStore: VueQueryStore
 }
 
-export default WalletPlugin
-/**
- * Vue plugin that provides the Stellar runtime to all components.
- *
- * This plugin creates and injects a `StellarRuntime` instance, making it
- * available to composables via `useStellar()`.
- */
+export const STELLAR_RUNTIME_KEY: InjectionKey<StellarRuntime> = Symbol("use-stellar/vue:runtime")
 
-import { type App, inject } from "vue"
-import { createStellarRuntime, type StellarRuntime, type StellarRuntimeOptions } from "use-stellar"
+function resolveNetworkConfig(
+  network: StellarNetwork,
+  override: StellarPluginOptions["networkConfig"]
+): NetworkConfig {
+  const builtIn = NETWORK_CONFIGS[network]
+  if (!override) return builtIn
 
-/**
- * Options for creating the Stellar Vue plugin.
- */
-export type CreateStellarPluginOptions = StellarRuntimeOptions
-
-/**
- * Injection key for the Stellar runtime.
- * @internal
- */
-export const StellarRuntimeKey = Symbol("StellarRuntime") as InjectionKey<StellarRuntime>
-
-/**
- * Creates and returns a Vue plugin that provides the Stellar runtime.
- *
- * The plugin initializes a `StellarRuntime` instance with the given options
- * and makes it available to all components and composables via the Vue
- * injection system.
- *
- * @param options Configuration for the runtime
- * @returns A Vue plugin function
- *
- * @example
- * const app = createApp(App)
- * app.use(createStellarPlugin({
- *   networkConfig: {
- *     network: "testnet",
- *     horizonUrl: "https://horizon-testnet.stellar.org",
- *     sorobanUrl: "https://soroban-testnet.stellar.org",
- *     networkPassphrase: "Test SDF Network ; September 2015"
- *   }
- * }))
- */
-export function createStellarPlugin(options: CreateStellarPluginOptions) {
-  return (app: App) => {
-    const runtime = createStellarRuntime(options)
-    app.provide(StellarRuntimeKey, runtime)
+  return {
+    network,
+    horizonUrl: override.horizonUrl ?? builtIn.horizonUrl,
+    sorobanUrl: override.sorobanUrl ?? builtIn.sorobanUrl,
+    networkPassphrase: override.networkPassphrase ?? builtIn.networkPassphrase,
   }
 }
 
 /**
- * Retrieves the injected Stellar runtime from the current component context.
- *
- * @internal Used by `useStellar()` to access the runtime.
- * @throws {Error} If called outside a component with the plugin installed
+ * Builds a Stellar runtime without installing it as a plugin. Used by
+ * {@link createStellarPlugin} itself, and by the test harness in
+ * `use-stellar/vue/test-utils` to provide a runtime without a real app.
  */
-export function injectStellarRuntime(): StellarRuntime {
-  const runtime = inject<StellarRuntime | undefined>(StellarRuntimeKey)
+export function createStellarRuntime(options: StellarPluginOptions = {}): StellarRuntime {
+  const network = options.network ?? "testnet"
+  return {
+    network,
+    networkConfig: resolveNetworkConfig(network, options.networkConfig),
+    queryStore: new VueQueryStore(options.queryConfig),
+  }
+}
+
+/**
+ * Vue plugin that installs the Stellar runtime — resolved network config plus
+ * one shared query cache — so every composable in this package reads and
+ * writes through the same instance.
+ *
+ * @example
+ * import { createApp } from "vue"
+ * import { createStellarPlugin } from "@use-stellar/vue"
+ *
+ * createApp(App).use(createStellarPlugin({ network: "testnet" })).mount("#app")
+ */
+export function createStellarPlugin(options: StellarPluginOptions = {}) {
+  return {
+    install(app: App): void {
+      app.provide(STELLAR_RUNTIME_KEY, createStellarRuntime(options))
+    },
+  }
+}
+
+/**
+ * Reads the installed Stellar runtime.
+ *
+ * @throws {Error} when called outside a component tree the plugin was
+ * installed on (or outside `app.runWithContext()` in tests).
+ */
+export function useStellarRuntime(): StellarRuntime {
+  const runtime = inject(STELLAR_RUNTIME_KEY)
   if (!runtime) {
     throw new Error(
-      "@use-stellar/vue: No StellarRuntime found. " +
-        "Make sure to call app.use(createStellarPlugin(...)) before mounting your app."
+      "@use-stellar/vue: no plugin installed. Call " +
+        "app.use(createStellarPlugin()) before using any composable."
     )
   }
   return runtime
 }
-
-// Type helper for Vue's injection
-type InjectionKey<T> = symbol & { __type?: T }

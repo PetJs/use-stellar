@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from "@testing-library/react"
 import React from "react"
 import { StellarProvider } from "../context/StellarProvider"
+import { serializeKey, transactionKey } from "../cache/keys"
 import { useTransaction } from "./useTransaction"
 import type { UseTransactionOptions, UseTransactionReturn } from "./useTransaction"
 import type { StellarError, TransactionResult, TransactionStatus } from "../types"
@@ -217,6 +218,28 @@ describe("useTransaction", () => {
       // the last known-good transaction rather than blanking the display.
       expect(result.current.error?.code).toBe("NETWORK_ERROR")
       expect(result.current.transaction?.status).toBe("success")
+    })
+  })
+
+  describe("cross-framework cache key parity", () => {
+    const HORIZON = "https://horizon-testnet.stellar.org"
+
+    it("uses transactionKey so a Vue composable with the same input shares one cache entry", () => {
+      // The Vue useTransaction composable delegates to the same core fetcher
+      // and keys its cache entry with the same `transactionKey(...)`, so a
+      // React hook and a Vue composable given the same hash share one entry.
+      const key = serializeKey(transactionKey(HORIZON, "testnet", TEST_HASH))
+      expect(key).toContain(TEST_HASH)
+      expect(serializeKey(transactionKey(HORIZON, "testnet", TEST_HASH))).toBe(key)
+      expect(serializeKey(transactionKey(HORIZON, "testnet", "0987654321fedcba"))).not.toBe(key)
+    })
+
+    it("keys a hash per Horizon URL and network, so networks never share an entry", () => {
+      const testnet = serializeKey(transactionKey(HORIZON, "testnet", TEST_HASH))
+      const mainnet = serializeKey(
+        transactionKey("https://horizon.stellar.org", "mainnet", TEST_HASH)
+      )
+      expect(testnet).not.toBe(mainnet)
     })
   })
 
