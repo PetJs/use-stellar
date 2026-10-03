@@ -1,32 +1,32 @@
-import type { App, InjectionKey, Plugin } from 'vue';
-import type { WalletAdapter } from '@stellar-wallet-kit/core';
-import { WALLET_KEY } from './useWallet';
+import type { App, InjectionKey, Plugin } from "vue"
+import type { WalletAdapter } from "@stellar-wallet-kit/core"
+import { WALLET_KEY } from "./useWallet"
 
 export interface WalletPluginOptions {
-  adapters: WalletAdapter[];
+  adapters: WalletAdapter[]
   /**
    * When true, the plugin will attempt to restore a previous wallet session
    * on mount. Silent-capable adapters reconnect automatically; prompting
    * adapters only restore intent and populate `restoredWallet`.
    */
-  autoConnect?: boolean;
+  autoConnect?: boolean
   /**
    * When true, the public address of the connected wallet is persisted
    * alongside the wallet type. Never persists secret material.
    */
-  persistAddress?: boolean;
+  persistAddress?: boolean
 }
 
-export const WALLET_PORT_KEY: InjectionKey<WalletPluginOptions> = Symbol('stellar-wallet-options');
+export const WALLET_PORT_KEY: InjectionKey<WalletPluginOptions> = Symbol("stellar-wallet-options")
 
 export const WalletPlugin: Plugin = {
   install(app: App, options: WalletPluginOptions) {
-    app.provide(WALLET_PORT_KEY, options);
-    app.provide(WALLET_KEY, options.adapters);
+    app.provide(WALLET_PORT_KEY, options)
+    app.provide(WALLET_KEY, options.adapters)
   },
-};
+}
 
-export default WalletPlugin;
+export default WalletPlugin
 /**
  * Vue plugin that provides the Stellar runtime to all components.
  *
@@ -35,11 +35,7 @@ export default WalletPlugin;
  */
 
 import { type App, inject } from "vue"
-import {
-  createStellarRuntime,
-  type StellarRuntime,
-  type StellarRuntimeOptions,
-} from "use-stellar"
+import { createStellarRuntime, type StellarRuntime, type StellarRuntimeOptions } from "use-stellar"
 
 /**
  * Options for creating the Stellar Vue plugin.
@@ -91,7 +87,7 @@ export function injectStellarRuntime(): StellarRuntime {
   if (!runtime) {
     throw new Error(
       "@use-stellar/vue: No StellarRuntime found. " +
-        'Make sure to call app.use(createStellarPlugin(...)) before mounting your app.'
+        "Make sure to call app.use(createStellarPlugin(...)) before mounting your app."
     )
   }
   return runtime

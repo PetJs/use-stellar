@@ -15,14 +15,7 @@ import {
   StellarError as StellarErrorClass,
 } from "../errors"
 import { sendPayment, SendPaymentAbortedError, isPreflightError } from "../actions/sendPayment"
-import { accountKey } from "../cache"
-import type {
-  SendPaymentOptions,
-  SendPaymentResult,
-  Asset,
-  MemoInput,
-  StellarError,
-} from "../types"
+import type { SendPaymentOptions, SendPaymentResult, StellarError } from "../types"
 
 export interface UseSendPaymentReturn {
   send: (options: SendPaymentOptions) => Promise<SendPaymentResult & { error?: string }>

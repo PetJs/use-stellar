@@ -10,9 +10,19 @@ import React from "react"
 import { renderHook, act } from "@testing-library/react"
 
 // jest.mock is hoisted to the top of the file by Jest.
-jest.mock("../utils", () => {
-  const actual = jest.requireActual("../utils")
-  return { ...actual, isBrowser: () => false }
+jest.mock("../runtime/platform", () => {
+  const actual = jest.requireActual("../runtime/platform")
+  return {
+    ...actual,
+    detectPlatform: () => ({
+      kind: "server",
+      canConnectWallet: false,
+      hasLocalStorage: false,
+      hasDom: false,
+      isServer: true,
+      storage: null,
+    }),
+  }
 })
 
 import { StellarProvider } from "../context/StellarProvider"
