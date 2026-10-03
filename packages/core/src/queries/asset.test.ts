@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchAsset } from "./asset"
 import { horizonError, NOT_FOUND } from "../__tests__/fixtures/horizon-errors"
 import { StellarError } from "../errors"
@@ -23,18 +24,23 @@ describe("queries/asset", () => {
     jest.clearAllMocks()
   })
 
-  const mockConfig: any = { horizonUrl: "https://horizon-testnet.stellar.org", networkPassphrase: "Test SDF Network ; September 2015" }
+  const mockConfig: any = {
+    horizonUrl: "https://horizon-testnet.stellar.org",
+    networkPassphrase: "Test SDF Network ; September 2015",
+  }
 
   it("returns asset info when found", async () => {
     MOCK_CALL.mockResolvedValueOnce({
-      records: [{
-        asset_code: "USDC",
-        asset_issuer: "G123",
-        amount: "1000",
-        num_accounts: 10,
-        home_domain: "stellar.org",
-        flags: { auth_required: false, auth_revocable: false, auth_immutable: true },
-      }]
+      records: [
+        {
+          asset_code: "USDC",
+          asset_issuer: "G123",
+          amount: "1000",
+          num_accounts: 10,
+          home_domain: "stellar.org",
+          flags: { auth_required: false, auth_revocable: false, auth_immutable: true },
+        },
+      ],
     })
 
     const res = await fetchAsset(mockConfig, { code: "USDC", issuer: "G123" })
@@ -51,13 +57,17 @@ describe("queries/asset", () => {
 
   it("throws mapped StellarError on network failure", async () => {
     MOCK_CALL.mockRejectedValueOnce(horizonError(NOT_FOUND))
-    await expect(fetchAsset(mockConfig, { code: "USDC", issuer: "G123" })).rejects.toThrow(StellarError)
+    await expect(fetchAsset(mockConfig, { code: "USDC", issuer: "G123" })).rejects.toThrow(
+      StellarError
+    )
   })
 
   it("throws abort error if aborted", async () => {
     MOCK_CALL.mockRejectedValueOnce(new Error("Network Error"))
     const controller = new AbortController()
     controller.abort()
-    await expect(fetchAsset(mockConfig, { code: "USDC", issuer: "G123" }, { signal: controller.signal })).rejects.toThrow("Network Error")
+    await expect(
+      fetchAsset(mockConfig, { code: "USDC", issuer: "G123" }, { signal: controller.signal })
+    ).rejects.toThrow("Network Error")
   })
 })

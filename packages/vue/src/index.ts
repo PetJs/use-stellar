@@ -1,6 +1,7 @@
 export * from "./useAnchor"
 export * from "./useTransactionHistory"
 export * from "./useAccount"
+export * from "./useFederationLookup"
 export * from "./plugin"
 export * from "./useStellar"
 export * from "./useWallet"

@@ -87,7 +87,10 @@ describe("StellarRuntime", () => {
 
     unsubscribe()
 
-    runtime.updateWallet({ ...mockWalletState, address: "GBECVXWAGVYAZGYOFQRTKXZLPELX3RMIQVFMVJ5FTZ47F7CLLSUNQTE" })
+    runtime.updateWallet({
+      ...mockWalletState,
+      address: "GBECVXWAGVYAZGYOFQRTKXZLPELX3RMIQVFMVJ5FTZ47F7CLLSUNQTE",
+    })
     expect(listener).toHaveBeenCalledTimes(1) // Not called again
   })
 
