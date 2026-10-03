@@ -6,6 +6,7 @@ import { getHorizonServer, isBrowser } from "../utils"
 import { getWalletAdapter } from "../wallets"
 import { rpc, Contract, TransactionBuilder, scValToNative, Account } from "@stellar/stellar-sdk"
 import { createStellarError, toStellarError } from "../errors"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type { SorobanInvokeOptions, UseSorobanWriteReturn } from "../types"
 import type { StellarError } from "../errors"
 
@@ -42,6 +43,8 @@ export function useSorobanWrite<T = unknown>(): UseSorobanWriteReturn<T> {
             `Wallet is on ${wallet.walletNetwork}, but the provider is on ${network}.`
           )
         }
+        // Fail fast offline — a signed transaction is never queued for later.
+        if (!onlineManager.isOnline()) throw offlineError()
 
         const { contractId, method, args = [], fee, timeout = 30000 } = options
 

@@ -6,6 +6,7 @@ import { getHorizonServer, isBrowser } from "../utils"
 import { getWalletAdapter } from "../wallets"
 import { TransactionBuilder, Operation, StrKey } from "@stellar/stellar-sdk"
 import { createStellarError, isStellarError, toStellarError } from "../errors"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import type { UseCreateAccountReturn, CreateAccountOptions, TransactionResult } from "../types"
 import type { StellarError } from "../errors"
 
@@ -31,6 +32,8 @@ export function useCreateAccount(): UseCreateAccountReturn {
         if (wallet.walletNetwork && wallet.walletNetwork !== network) {
           throw createStellarError("WRONG_NETWORK", "Network mismatch")
         }
+        // Fail fast offline — a signed transaction is never queued for later.
+        if (!onlineManager.isOnline()) throw offlineError()
 
         const { destination, startingBalance, fee, feeMultiplier } = options
 

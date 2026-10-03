@@ -5,6 +5,7 @@ import { getHorizonServer } from "../utils"
 import { asFeeSource, resolveFee } from "../utils/fees"
 import { getWalletAdapter } from "../wallets"
 import { createStellarError, toStellarError } from "../errors"
+import { offlineError, onlineManager } from "../runtime/onlineManager"
 import {
   StellarError,
   TransactionResult,
@@ -59,6 +60,12 @@ export function useManageOffer(): UseManageOfferReturn {
       setError(
         createStellarError("WALLET_NOT_CONNECTED", "Wallet not connected. Call connect() first.")
       )
+      return null
+    }
+
+    // Fail fast offline — a signed transaction is never queued for later.
+    if (!onlineManager.isOnline()) {
+      setError(offlineError())
       return null
     }
 
