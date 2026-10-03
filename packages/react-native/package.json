@@ -1,7 +1,7 @@
 {
   "name": "@use-stellar/react-native",
   "version": "0.1.5",
-  "description": "React Native integration for use-stellar with AppState, NetInfo, and AsyncStorage",
+  "description": "React Native hooks for the Stellar network - native platform integrations",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RaceeyXo/use-stellar.git",
@@ -59,24 +59,22 @@
     "test:watch": "jest --watch --testPathPattern='\\.native\\.test' --testPathIgnorePatterns=integration",
     "typecheck": "tsc --noEmit",
     "dev": "tsup --watch",
-    "lint:package": "publint && attw --pack .",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:package": "publint && attw --pack ."
   },
-  "dependencies": {
-    "use-stellar": "workspace:*"
-  },
+  "dependencies": {},
   "peerDependencies": {
-    "buffer": ">=6.0.0",
     "react": ">=18.0.0",
     "react-native": ">=0.71.0",
     "use-stellar": "workspace:*",
     "@walletconnect/react-native-compat": "^2.0.0",
     "@walletconnect/sign-client": "^2.0.0"
     "react-native": ">=0.68.0",
+    "use-stellar": "workspace:*",
+    "buffer": ">=6.0.0",
     "react-native-get-random-values": ">=1.8.0",
     "react-native-url-polyfill": ">=2.0.0",
-    "text-encoding": ">=0.7.0",
-    "use-stellar": ">=0.1.5"
+    "text-encoding": ">=0.7.0"
   },
   "peerDependenciesMeta": {
     "buffer": {
