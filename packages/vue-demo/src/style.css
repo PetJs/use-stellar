@@ -1,0 +1,21 @@
+:root { font-family: system-ui, sans-serif; color: #e8edf2; background: #101820; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(880px, 100%); margin: 0 auto; padding: 2rem 1rem 4rem; }
+header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+h1 { margin-bottom: .25rem; }
+h2 { margin-top: 0; }
+p { color: #b9c6d1; line-height: 1.5; }
+section { background: #19242e; border: 1px solid #344350; border-radius: 8px; padding: 1.25rem; margin-top: 1rem; }
+.badge { border: 1px solid #59bdcc; border-radius: 1rem; padding: .3rem .7rem; color: #8ee4ef; text-transform: uppercase; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+form { display: grid; gap: .8rem; }
+label { display: grid; gap: .3rem; margin-bottom: .8rem; }
+input { width: 100%; padding: .65rem; border: 1px solid #52616e; border-radius: 4px; background: #101820; color: inherit; }
+button { width: fit-content; padding: .6rem 1rem; border: 0; border-radius: 4px; background: #75d7e3; color: #101820; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+a { color: #8ee4ef; overflow-wrap: anywhere; }
+code, pre { overflow-wrap: anywhere; }
+pre { white-space: pre-wrap; }
+.error { color: #ff9c9c; }
+li { margin: .5rem 0; }

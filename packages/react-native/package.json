@@ -116,6 +116,8 @@
     "react-test-renderer": "18.3.1",
     "ts-jest": "^29.0.0",
     "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "use-stellar": "workspace:*"
     "typescript": "^5.4.0"
   },
   "keywords": [
