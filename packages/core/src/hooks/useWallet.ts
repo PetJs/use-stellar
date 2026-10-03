@@ -131,7 +131,14 @@ export function useWallet(): UseWalletReturn {
         }))
       }
     },
-    [safeSetWallet, network, autoConnect.enabled, autoConnect.persistAddress, autoConnect.storage, platform]
+    [
+      safeSetWallet,
+      network,
+      autoConnect.enabled,
+      autoConnect.persistAddress,
+      autoConnect.storage,
+      platform,
+    ]
   )
 
   const disconnect = useCallback(() => {

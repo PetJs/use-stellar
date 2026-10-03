@@ -2,7 +2,6 @@ import { createContext, useContext, useMemo, useRef, useState, type ReactNode } 
 import type {
   AutoConnectOptions,
   CustomNetworkConfig,
-  NetworkConfig,
   StellarContextValue,
   StellarNetwork,
   WalletState,

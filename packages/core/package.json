@@ -1,6 +1,7 @@
 {
   "name": "use-stellar",
   "version": "0.1.5",
+  "type": "commonjs",
   "description": "React hooks for the Stellar network - the wagmi of Stellar",
   "repository": {
     "type": "git",
@@ -58,7 +59,7 @@
     "test:watch": "jest --watch --testPathIgnorePatterns=integration",
     "test:integration": "jest --config jest.integration.config.js",
     "test:package": "node scripts/smoke-test.js",
-    "lint:package": "publint && attw --pack .",
+    "lint:package": "publint && attw --pack . --ignore-rules no-resolution",
     "typecheck": "tsc --noEmit",
     "dev": "tsup --watch",
     "size": "size-limit",

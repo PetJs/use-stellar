@@ -162,8 +162,7 @@ describe("checkStellarRuntime", () => {
       const bufferFix = result.missing.find(m => m.global === "Buffer")?.fix || ""
       const cryptoFix = result.missing.find(m => m.global === "crypto.getRandomValues")?.fix || ""
       const urlFix = result.missing.find(m => m.global === "URL")?.fix || ""
-      const textEncoderFix =
-        result.missing.find(m => m.global === "TextEncoder")?.fix || ""
+      const textEncoderFix = result.missing.find(m => m.global === "TextEncoder")?.fix || ""
 
       expect(bufferFix).toContain("buffer")
       expect(cryptoFix).toContain("react-native-get-random-values")

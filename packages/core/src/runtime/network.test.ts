@@ -12,12 +12,16 @@ describe("resolveNetworkConfig", () => {
         horizonUrl: " https://horizon.example ",
         sorobanUrl: " https://rpc.example ",
       })
-    ).toEqual({ ...NETWORK_CONFIGS.testnet, horizonUrl: "https://horizon.example", sorobanUrl: "https://rpc.example" })
+    ).toEqual({
+      ...NETWORK_CONFIGS.testnet,
+      horizonUrl: "https://horizon.example",
+      sorobanUrl: "https://rpc.example",
+    })
   })
 
   it("requires a passphrase for custom networks", () => {
-    expect(() =>
-      resolveNetworkConfig("custom", { horizonUrl: "h", sorobanUrl: "s" })
-    ).toThrow("networkPassphrase")
+    expect(() => resolveNetworkConfig("custom", { horizonUrl: "h", sorobanUrl: "s" })).toThrow(
+      "networkPassphrase"
+    )
   })
 })

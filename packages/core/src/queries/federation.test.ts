@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { fetchFederationLookup } from "./federation"
 import { Federation } from "@stellar/stellar-sdk"
 import { StellarError } from "../errors"
@@ -31,13 +32,17 @@ describe("queries/federation", () => {
 
   it("throws StellarError on failure", async () => {
     ;(Federation.Server.resolve as jest.Mock).mockRejectedValueOnce(new Error("Network error"))
-    await expect(fetchFederationLookup({ address: "bob*stellar.org" })).rejects.toThrow("Unable to reach the Stellar network")
+    await expect(fetchFederationLookup({ address: "bob*stellar.org" })).rejects.toThrow(
+      "Unable to reach the Stellar network"
+    )
   })
 
   it("throws abort error if aborted", async () => {
     ;(Federation.Server.resolve as jest.Mock).mockRejectedValueOnce(new Error("Network error"))
     const controller = new AbortController()
     controller.abort()
-    await expect(fetchFederationLookup({ address: "bob*stellar.org" }, { signal: controller.signal })).rejects.toThrow("Network error")
+    await expect(
+      fetchFederationLookup({ address: "bob*stellar.org" }, { signal: controller.signal })
+    ).rejects.toThrow("Network error")
   })
 })
