@@ -12,6 +12,7 @@ import type {
   UseContractEventsOptions,
   UseContractEventsReturn,
 } from "../types"
+import { focusManager } from "../runtime/focusManager"
 
 /**
  * Subscribes to the events a Soroban contract emits.

@@ -4,6 +4,7 @@ import { getHorizonServer, parseHorizonBalance } from "../utils"
 import { toStellarError } from "../errors"
 import { useQuery, accountKey } from "../cache"
 import type { AccountInfo, Asset, Balance, StellarError } from "../types"
+import { focusManager } from "../runtime/focusManager"
 
 export interface UseBalanceOptions {
   address?: string | null // defaults to connected wallet address
@@ -77,9 +78,13 @@ export function useBalance({
   const { network, networkConfig, wallet, queryStore } = useStellarContext()
   const resolvedAddress = address ?? wallet.address
 
-  const queryKey = resolvedAddress
-    ? accountKey(networkConfig.horizonUrl, network, resolvedAddress)
-    : (["balance", "disabled"] as const)
+  const queryKey = useMemo(
+    () =>
+      resolvedAddress
+        ? accountKey(networkConfig.horizonUrl, network, resolvedAddress)
+        : (["balance", "disabled"] as const),
+    [resolvedAddress, networkConfig.horizonUrl, network]
+  )
 
   const {
     data: account,
@@ -133,15 +138,54 @@ export function useBalance({
     if (!watch || !resolvedAddress) return
 
     const ms = interval > 0 ? interval : DEFAULT_WATCH_INTERVAL
-    const id = setInterval(() => {
-      // Skip this poll cycle if the rate-limit backoff window hasn't expired.
-      if (rateLimitedUntilRef.current !== null && Date.now() < rateLimitedUntilRef.current) {
-        return
+    let id: ReturnType<typeof setInterval> | undefined
+    const start = () => {
+      if (id !== undefined) clearInterval(id)
+      if (!focusManager.isFocused()) return
+      id = setInterval(() => {
+        if (!focusManager.isFocused()) return
+        // Skip this poll cycle if the rate-limit backoff window hasn't expired.
+        if (rateLimitedUntilRef.current !== null && Date.now() < rateLimitedUntilRef.current) {
+          return
+        }
+        refetchRef.current()
+      }, ms)
+    }
+    start()
+    const unsubscribeFocus = focusManager.subscribe(focused => {
+      if (id !== undefined) {
+        clearInterval(id)
+        id = undefined
       }
-      refetchRef.current()
-    }, ms)
-    return () => clearInterval(id)
-  }, [watch, interval, resolvedAddress, network, networkConfig.horizonUrl, rateLimitedUntilRef])
+      if (!focused) return
+      const entry = queryStore.getSnapshot(queryKey)
+      const rateLimited =
+        rateLimitedUntilRef.current !== null && Date.now() < rateLimitedUntilRef.current
+      if (
+        entry?.subscribers &&
+        !rateLimited &&
+        !queryStore.isLoading(queryKey) &&
+        !queryStore.isFresh(queryKey, staleTime)
+      ) {
+        refetchRef.current()
+      }
+      start()
+    })
+    return () => {
+      if (id !== undefined) clearInterval(id)
+      unsubscribeFocus()
+    }
+  }, [
+    watch,
+    interval,
+    resolvedAddress,
+    network,
+    networkConfig.horizonUrl,
+    rateLimitedUntilRef,
+    queryStore,
+    queryKey,
+    staleTime,
+  ])
 
   const error = rawError ? toStellarError(rawError) : null
   // Memoized on the timestamp: a fresh Date each render would look like a
